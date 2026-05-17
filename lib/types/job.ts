@@ -39,9 +39,8 @@ export interface Job {
   satisfactionScore?: number;
   satisfactionFeedback?: string;
   paymentTxnHash?: string;
-  ownerInvoiceId?: string;
-  ownerInvoiceUrl?: string;
-  ownerPaidAt?: string;
+  contractorInvoiceId?: string;
+  contractorInvoiceUrl?: string;
 }
 
 export type JobSummary = Pick<

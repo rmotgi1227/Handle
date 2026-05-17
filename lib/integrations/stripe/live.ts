@@ -57,4 +57,9 @@ export const stripe: StripeClient = {
         : undefined,
     };
   },
+
+  async markInvoicePaidOutOfBand(invoiceId): Promise<void> {
+    const client = getStripe();
+    await client.invoices.pay(invoiceId, { paid_out_of_band: true });
+  },
 };

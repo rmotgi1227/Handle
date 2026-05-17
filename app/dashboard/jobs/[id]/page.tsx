@@ -5,7 +5,7 @@ import {
   ArrowLeft, Phone, CheckCircle2, Receipt, MailQuestion, StickyNote, ChevronDown, Banknote, CreditCard,
 } from "lucide-react";
 import { store } from "@/lib/store/memory";
-import { createInvoiceForJob, markJobComplete, sendSurveyRequest, addNoteToJob, payContractor, billPropertyOwner } from "@/lib/orchestrator/actions";
+import { createInvoiceForJob, markJobComplete, sendSurveyRequest, addNoteToJob, payContractor } from "@/lib/orchestrator/actions";
 import { UrgencyPill } from "@/components/dashboard/urgency-pill";
 import { StatusPill } from "@/components/dashboard/status-pill";
 import { JobTimeline } from "@/components/dashboard/job-timeline";
@@ -76,15 +76,6 @@ export default async function JobDetailPage({
       revalidatePath(`/dashboard/jobs/${id}`);
     } catch (err) {
       console.error("[executePayment]", err);
-    }
-  }
-  async function billOwner() {
-    "use server";
-    try {
-      await billPropertyOwner({ jobId: id });
-      revalidatePath(`/dashboard/jobs/${id}`);
-    } catch (err) {
-      console.error("[billOwner]", err);
     }
   }
 
@@ -254,6 +245,20 @@ export default async function JobDetailPage({
                   </button>
                 </form>
               ) : null}
+              {job.contractorInvoiceId && job.contractorInvoiceUrl ? (
+                <a
+                  href={job.contractorInvoiceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070] hover:bg-[#EEEBE4] hover:text-[#15161A]"
+                >
+                  <CreditCard className="size-3.5 shrink-0 text-[#065F46]" />
+                  <span className="truncate">
+                    Stripe invoice {job.contractorInvoiceId}
+                    {job.paymentTxnHash ? " · Paid" : " · Awaiting Sponge settlement"}
+                  </span>
+                </a>
+              ) : null}
               {job.paymentTxnHash ? (
                 <a
                   href={`https://solscan.io/tx/${job.paymentTxnHash}`}
@@ -262,44 +267,8 @@ export default async function JobDetailPage({
                   className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070] hover:bg-[#EEEBE4] hover:text-[#15161A]"
                 >
                   <Banknote className="size-3.5 shrink-0 text-[#3B5A78]" />
-                  <span className="truncate">Contractor paid · {job.paymentTxnHash.slice(0, 8)}…{job.paymentTxnHash.slice(-6)}</span>
+                  <span className="truncate">Sponge txn · {job.paymentTxnHash.slice(0, 8)}…{job.paymentTxnHash.slice(-6)}</span>
                 </a>
-              ) : null}
-              {job.paymentTxnHash && !job.ownerInvoiceId ? (
-                <form action={billOwner} className="col-span-2">
-                  <button
-                    type="submit"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#6B4F2E] bg-[#FDF6EE] px-3 py-2.5 text-xs font-bold text-[#6B4F2E] transition-colors hover:bg-[#6B4F2E] hover:text-white"
-                  >
-                    <CreditCard className="size-3.5" />
-                    Bill owner via Stripe
-                    {job.totalCostCents ? ` — $${(job.totalCostCents / 100).toFixed(2)}` : ""}
-                  </button>
-                </form>
-              ) : null}
-              {job.ownerInvoiceId ? (
-                job.ownerInvoiceUrl ? (
-                  <a
-                    href={job.ownerInvoiceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070] hover:bg-[#EEEBE4] hover:text-[#15161A]"
-                  >
-                    <CreditCard className="size-3.5 shrink-0 text-[#065F46]" />
-                    <span className="truncate">
-                      Owner invoice sent
-                      {job.ownerPaidAt ? ` · Paid ${new Date(job.ownerPaidAt).toLocaleDateString()}` : " · Awaiting payment"}
-                    </span>
-                  </a>
-                ) : (
-                  <div className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070]">
-                    <CreditCard className="size-3.5 shrink-0 text-[#065F46]" />
-                    <span className="truncate">
-                      Owner invoice sent
-                      {job.ownerPaidAt ? ` · Paid ${new Date(job.ownerPaidAt).toLocaleDateString()}` : " · Awaiting payment"}
-                    </span>
-                  </div>
-                )
               ) : null}
             </div>
           </div>

@@ -53,12 +53,17 @@ export async function markJobComplete(
   return { job: updated };
 }
 
-// --- Record invoice amount and move job to awaiting_payment ---
+// --- Receive a contractor invoice (real Stripe invoice generated on contractor's behalf) ---
+// In production the contractor would issue this directly from their own Stripe account.
+// For the demo, Handle creates the Stripe invoice as the contractor's billing surface so
+// the amount + reference are first-class Stripe records the landlord can verify.
 export interface CreateInvoiceInput {
   jobId: string;
   amountCents: number;
 }
 export interface CreateInvoiceResult {
+  invoiceId: string;
+  hostedUrl: string;
   amountCents: number;
 }
 export async function createInvoiceForJob(
@@ -72,42 +77,60 @@ export async function createInvoiceForJob(
       400,
     );
   }
-  if (job.totalCostCents) {
+  if (job.contractorInvoiceId) {
     throw new ActionError(
       "already_invoiced",
-      `job already has invoice amount $${(job.totalCostCents / 100).toFixed(2)}`,
+      `job already has Stripe invoice ${job.contractorInvoiceId}`,
+      400,
+    );
+  }
+  if (!job.assignedContractorId) {
+    throw new ActionError("no_contractor", "job has no assigned contractor", 400);
+  }
+  const contractor = store.contractors.get(job.assignedContractorId);
+  if (!contractor) throw new ActionError("contractor_not_found", "contractor not found", 404);
+
+  const property = store.properties.get(job.propertyId);
+  const owner = property ? store.people.get(property.ownerId) : undefined;
+  if (!owner?.email) {
+    throw new ActionError(
+      "no_owner_email",
+      `Property owner has no email on file; cannot bill them via Stripe`,
       400,
     );
   }
 
-  const property = store.properties.get(job.propertyId);
-  const owner = property ? store.people.get(property.ownerId) : undefined;
-  const ownerEmail = owner?.email;
-
-  store.appendEvent({
+  const { invoiceId, hostedUrl } = await stripe.createInvoice({
+    ownerEmail: owner.email,
+    amountCents: input.amountCents,
+    description: `${contractor.name} — ${job.title}`,
     jobId: job.id,
-    kind: "invoice_sent",
-    title: `Invoice recorded — $${(input.amountCents / 100).toFixed(2)}`,
-    detail: "Awaiting contractor payment via Sponge",
-    data: { amountCents: input.amountCents },
   });
-
-  if (ownerEmail) {
-    await agentmail.sendEmail({
-      to: ownerEmail,
-      subject: `Invoice for ${job.title}`,
-      text: `Invoice for ${job.title}: $${(input.amountCents / 100).toFixed(2)}. Payment will be processed once the contractor is confirmed.`,
-      tags: ["invoice", job.id],
-    });
-  }
 
   store.upsertJob({
     id: job.id,
     status: "awaiting_payment",
     totalCostCents: input.amountCents,
+    contractorInvoiceId: invoiceId,
+    contractorInvoiceUrl: hostedUrl,
   });
 
-  return { amountCents: input.amountCents };
+  store.appendEvent({
+    jobId: job.id,
+    kind: "invoice_sent",
+    title: `Invoice received from ${contractor.name} — $${(input.amountCents / 100).toFixed(2)}`,
+    detail: `Stripe invoice ${invoiceId}`,
+    data: { amountCents: input.amountCents, invoiceId, hostedUrl },
+  });
+
+  await agentmail.sendEmail({
+    to: owner.email,
+    subject: `Invoice from ${contractor.name} — ${job.title}`,
+    text: `Hi ${owner.name ?? "there"}, ${contractor.name} sent an invoice for "${job.title}" ($${(input.amountCents / 100).toFixed(2)}). Handle's agent will settle it via Sponge. Invoice: ${hostedUrl}`,
+    tags: ["invoice", job.id],
+  });
+
+  return { invoiceId, hostedUrl, amountCents: input.amountCents };
 }
 
 // --- Pay contractor via Sponge ---
@@ -143,6 +166,16 @@ export async function payContractor(
     amountUsdc,
     memo: `Handle payment for job ${job.id}: ${job.title}`,
   });
+
+  // Sync Stripe — mark the contractor's invoice as paid out-of-band so the
+  // Stripe dashboard reflects the on-chain settlement.
+  if (job.contractorInvoiceId) {
+    try {
+      await stripe.markInvoicePaidOutOfBand(job.contractorInvoiceId);
+    } catch (err) {
+      console.error("[payContractor] markInvoicePaidOutOfBand failed:", err);
+    }
+  }
 
   store.upsertJob({ id: job.id, status: "paid", paymentTxnHash: txnHash });
   store.appendEvent({
@@ -248,85 +281,6 @@ export async function recordSurveyResponse(
   }
 
   return { job: updated };
-}
-
-// --- Bill the property owner via Stripe ---
-export interface BillPropertyOwnerInput {
-  jobId: string;
-}
-export interface BillPropertyOwnerResult {
-  invoiceId: string;
-  hostedUrl: string;
-}
-export async function billPropertyOwner(
-  input: BillPropertyOwnerInput,
-): Promise<BillPropertyOwnerResult> {
-  const job = getJobOrThrow(input.jobId);
-  if (!job.totalCostCents) {
-    throw new ActionError("no_amount", "job has no invoice amount — send invoice first", 400);
-  }
-  if (job.ownerInvoiceId) {
-    throw new ActionError("already_billed", "owner has already been billed for this job", 400);
-  }
-
-  const property = store.properties.get(job.propertyId);
-  const owner = property ? store.people.get(property.ownerId) : undefined;
-  if (!owner?.email) {
-    throw new ActionError(
-      "no_owner_email",
-      `Property owner has no email on file`,
-      400,
-    );
-  }
-
-  const { invoiceId, hostedUrl } = await stripe.createInvoice({
-    ownerEmail: owner.email,
-    amountCents: job.totalCostCents,
-    description: `Property maintenance: ${job.title}`,
-    jobId: job.id,
-  });
-
-  store.upsertJob({ id: job.id, ownerInvoiceId: invoiceId, ownerInvoiceUrl: hostedUrl });
-  store.appendEvent({
-    jobId: job.id,
-    kind: "owner_billed",
-    title: `Owner billed $${(job.totalCostCents / 100).toFixed(2)} via Stripe`,
-    detail: `Invoice sent to ${owner.email}`,
-    data: { invoiceId, hostedUrl, amountCents: job.totalCostCents },
-  });
-
-  await agentmail.sendEmail({
-    to: owner.email,
-    subject: `Invoice for maintenance: ${job.title}`,
-    text: `Hi ${owner.name ?? "there"}, your maintenance invoice for "${job.title}" is ready. Amount: $${(job.totalCostCents / 100).toFixed(2)}. Pay here: ${hostedUrl}`,
-    tags: ["owner-invoice", job.id],
-  });
-
-  return { invoiceId, hostedUrl };
-}
-
-// --- Record owner payment (called by Stripe webhook) ---
-export interface RecordOwnerPaymentInput {
-  jobId: string;
-  stripeInvoiceId: string;
-  paidAt: string;
-}
-export async function recordOwnerPayment(
-  input: RecordOwnerPaymentInput,
-): Promise<void> {
-  const job = getJobOrThrow(input.jobId);
-  // Idempotency: Stripe replays webhooks on retry; only record once.
-  if (job.ownerPaidAt) {
-    return;
-  }
-  store.upsertJob({ id: job.id, ownerPaidAt: input.paidAt, status: "completed" });
-  store.appendEvent({
-    jobId: job.id,
-    kind: "owner_paid",
-    title: "Owner payment received",
-    detail: `Stripe invoice ${input.stripeInvoiceId} paid`,
-    data: { stripeInvoiceId: input.stripeInvoiceId, paidAt: input.paidAt },
-  });
 }
 
 // --- Add a PM note to the job timeline ---

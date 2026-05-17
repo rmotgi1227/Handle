@@ -23,4 +23,8 @@ export const stripe: StripeClient = {
     paid.add(invoiceId);
     return { status: "open" };
   },
+
+  async markInvoicePaidOutOfBand(invoiceId) {
+    paid.add(invoiceId);
+  },
 };
