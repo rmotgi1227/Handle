@@ -286,7 +286,7 @@ export async function billPropertyOwner(
     jobId: job.id,
   });
 
-  store.upsertJob({ id: job.id, ownerInvoiceId: invoiceId });
+  store.upsertJob({ id: job.id, ownerInvoiceId: invoiceId, ownerInvoiceUrl: hostedUrl });
   store.appendEvent({
     jobId: job.id,
     kind: "owner_billed",

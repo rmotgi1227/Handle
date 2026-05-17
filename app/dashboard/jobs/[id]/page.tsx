@@ -278,13 +278,28 @@ export default async function JobDetailPage({
                 </form>
               ) : null}
               {job.ownerInvoiceId ? (
-                <div className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070]">
-                  <CreditCard className="size-3.5 shrink-0 text-[#065F46]" />
-                  <span className="truncate">
-                    Owner invoice sent
-                    {job.ownerPaidAt ? ` · Paid ${new Date(job.ownerPaidAt).toLocaleDateString()}` : " · Awaiting payment"}
-                  </span>
-                </div>
+                job.ownerInvoiceUrl ? (
+                  <a
+                    href={job.ownerInvoiceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070] hover:bg-[#EEEBE4] hover:text-[#15161A]"
+                  >
+                    <CreditCard className="size-3.5 shrink-0 text-[#065F46]" />
+                    <span className="truncate">
+                      Owner invoice sent
+                      {job.ownerPaidAt ? ` · Paid ${new Date(job.ownerPaidAt).toLocaleDateString()}` : " · Awaiting payment"}
+                    </span>
+                  </a>
+                ) : (
+                  <div className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070]">
+                    <CreditCard className="size-3.5 shrink-0 text-[#065F46]" />
+                    <span className="truncate">
+                      Owner invoice sent
+                      {job.ownerPaidAt ? ` · Paid ${new Date(job.ownerPaidAt).toLocaleDateString()}` : " · Awaiting payment"}
+                    </span>
+                  </div>
+                )
               ) : null}
             </div>
           </div>

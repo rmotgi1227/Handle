@@ -40,6 +40,7 @@ export interface Job {
   satisfactionFeedback?: string;
   paymentTxnHash?: string;
   ownerInvoiceId?: string;
+  ownerInvoiceUrl?: string;
   ownerPaidAt?: string;
 }
 
