@@ -9,7 +9,12 @@ export type ContractorMetrics = {
   avgSatisfaction?: number;
 };
 
-export type EnrichedContractor = Contractor & { metrics: ContractorMetrics };
+export type EnrichedContractor = Contractor & { metrics?: ContractorMetrics };
+
+const EMPTY_METRICS: ContractorMetrics = {
+  jobsCompleted: 0,
+  lifetimeSpendCents: 0,
+};
 
 const sourceLabel: Record<Contractor["source"], string> = {
   directory: "Directory",
@@ -64,7 +69,7 @@ export function ContractorCard({
   contractor: EnrichedContractor;
   className?: string;
 }) {
-  const m = contractor.metrics;
+  const m = contractor.metrics ?? EMPTY_METRICS;
   return (
     <div
       className={cn(
