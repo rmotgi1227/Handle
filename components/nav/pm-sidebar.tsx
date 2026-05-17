@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   Briefcase,
   Users,
   Settings,
-  PhoneCall,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,15 +32,17 @@ export function PmSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-[180px] shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center gap-2 px-5 py-5">
-        <div className="flex size-7 items-center justify-center rounded-lg bg-black">
-          <PhoneCall className="size-3.5 text-white" />
-        </div>
-        <div className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Call My Agent
-        </div>
-      </div>
+    <aside className="flex h-full w-[220px] shrink-0 flex-col border-r border-[#E8E3DA] bg-[#EEEBE4]">
+      <Link href="/" className="flex items-center px-6 py-6">
+        <Image
+          src="/logos/png/wordmark/handle-wordmark-1024.png"
+          width={92}
+          height={24}
+          alt="Handle"
+          priority
+          className="select-none"
+        />
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-0.5 px-3">
         {nav.map((item) => {
@@ -53,20 +55,22 @@ export function PmSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium tracking-tight transition-colors",
+                "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold tracking-tight transition-colors",
                 active
-                  ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50",
+                  ? "bg-white text-[#15161A] shadow-sm"
+                  : "text-[#6B7070] hover:bg-[#E8E3DA] hover:text-[#15161A]",
               )}
             >
-              <Icon className="size-4 text-zinc-700 dark:text-zinc-300" />
+              <Icon
+                className={cn("size-4", active ? "text-[#3B5A78]" : "text-[#9AA0A0]")}
+              />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-5 py-4 text-[0.7rem] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+      <div className="px-6 py-4 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#9AA0A0]">
         v1 · mock mode
       </div>
     </aside>
@@ -75,10 +79,6 @@ export function PmSidebar() {
 
 type CallsResponse = { calls: Call[] };
 
-/**
- * Top bar with property selector + live-call indicator.
- * Strict monochrome: indicator is a black pulsing dot, never red.
- */
 export function PmHeader({ properties }: { properties: Property[] }) {
   const callsRes = usePollingFetch<CallsResponse>("/api/calls", 5000);
   const [selected, setSelected] = useState<string>("all");
@@ -98,18 +98,15 @@ export function PmHeader({ properties }: { properties: Property[] }) {
         })();
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-950">
+    <header className="flex h-16 items-center gap-4 border-b border-[#E8E3DA] bg-[#F6F4EF] px-6">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium tracking-tight text-zinc-900 transition-colors hover:bg-zinc-50",
-              "dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900",
-            )}
+            className="inline-flex items-center gap-2 rounded-full border border-[#E8E3DA] bg-white px-3.5 py-2 text-sm font-semibold text-[#15161A] transition-colors hover:bg-[#F6F4EF]"
           >
             <span className="max-w-[16rem] truncate">{selectedLabel}</span>
-            <ChevronDown className="size-3.5 text-zinc-500" />
+            <ChevronDown className="size-3.5 text-[#6B7070]" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
@@ -125,24 +122,20 @@ export function PmHeader({ properties }: { properties: Property[] }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="ml-auto flex items-center gap-2 text-xs tracking-tight">
+      <div className="ml-auto flex items-center gap-2 text-xs font-semibold tracking-tight">
         {liveCount > 0 ? (
           <>
             <span className="relative inline-flex size-2">
-              <span className="absolute inset-0 rounded-full bg-black opacity-75 motion-safe:animate-ping dark:bg-white" />
-              <span className="relative size-2 rounded-full bg-black dark:bg-white" />
+              <span className="absolute inset-0 rounded-full bg-[#3B5A78] opacity-75 motion-safe:animate-ping" />
+              <span className="relative size-2 rounded-full bg-[#3B5A78]" />
             </span>
-            <span className="font-medium text-zinc-900 dark:text-zinc-50 tabular-nums">
-              {liveCount} live
-            </span>
-            <span className="text-zinc-500 dark:text-zinc-400">
-              {liveCount === 1 ? "call" : "calls"}
-            </span>
+            <span className="text-[#15161A] tabular-nums">{liveCount} live</span>
+            <span className="text-[#9AA0A0]">{liveCount === 1 ? "call" : "calls"}</span>
           </>
         ) : (
           <>
-            <span className="size-2 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-            <span className="text-zinc-500 dark:text-zinc-400">No live calls</span>
+            <span className="size-2 rounded-full bg-[#D5CFC6]" />
+            <span className="text-[#9AA0A0]">No live calls</span>
           </>
         )}
       </div>
