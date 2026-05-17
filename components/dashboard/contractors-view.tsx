@@ -48,7 +48,7 @@ export function ContractorsView({ contractors }: { contractors: EnrichedContract
       .map((c) => c.rating)
       .filter((r): r is number => typeof r === "number");
     const avg = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : "—";
-    const dispatched = contractors.filter((c) => c.metrics.jobsCompleted > 0).length;
+    const dispatched = contractors.filter((c) => (c.metrics?.jobsCompleted ?? 0) > 0).length;
     return { total, usdc, avg, dispatched };
   }, [contractors]);
 
@@ -67,13 +67,13 @@ export function ContractorsView({ contractors }: { contractors: EnrichedContract
         case "rating":
           return (b.rating ?? 0) - (a.rating ?? 0);
         case "jobs":
-          return b.metrics.jobsCompleted - a.metrics.jobsCompleted;
+          return (b.metrics?.jobsCompleted ?? 0) - (a.metrics?.jobsCompleted ?? 0);
         case "spend":
-          return b.metrics.lifetimeSpendCents - a.metrics.lifetimeSpendCents;
+          return (b.metrics?.lifetimeSpendCents ?? 0) - (a.metrics?.lifetimeSpendCents ?? 0);
         case "recent":
         default: {
-          const ax = a.metrics.lastDispatchedAt ?? "";
-          const bx = b.metrics.lastDispatchedAt ?? "";
+          const ax = a.metrics?.lastDispatchedAt ?? "";
+          const bx = b.metrics?.lastDispatchedAt ?? "";
           return bx.localeCompare(ax);
         }
       }
