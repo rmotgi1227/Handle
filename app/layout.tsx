@@ -36,6 +36,10 @@ void (async () => {
           text: "Lock malfunction or tenant locked out: URGENT. Dispatch locksmith within 2 hours. Tenant must never be locked out overnight.",
           tags: ["locksmith", "urgent"],
         }),
+        supermemory.remember({
+          text: "Drywall damage or cracking: URGENT. Inspect for water intrusion or structural issues. Dispatch general contractor within 24 hours.",
+          tags: ["structural", "urgent"],
+        }),
       ]);
     }
   } catch {
