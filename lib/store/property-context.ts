@@ -66,6 +66,7 @@ export function getPropertyContext(id: string): PropertyContext | null {
       tenants,
       recentJobIds,
       effectiveSpendCapCents: u.spendCapCents ?? property.spendCapCents,
+      ownership: u.ownership ?? "rental",
     };
   });
 

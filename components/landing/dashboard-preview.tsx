@@ -91,7 +91,7 @@ export function DashboardPreview() {
           </div>
           <div className="relative aspect-[16/9] w-full">
             <Image
-              src="/dashboard-preview.png"
+              src="/dashboard-preview-v2.png"
               alt="Handle dashboard preview"
               fill
               sizes="(min-width: 1280px) 1152px, 100vw"

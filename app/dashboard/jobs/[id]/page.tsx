@@ -170,7 +170,7 @@ export default async function JobDetailPage({
               <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">
                 Assigned contractor
               </h2>
-              <ContractorCard contractor={contractor} />
+              <ContractorCard contractor={{ ...contractor, metrics: { jobsCompleted: 0, lifetimeSpendCents: 0 } }} />
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-[#E8E3DA] p-5 text-xs font-medium text-[#9AA0A0]">

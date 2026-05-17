@@ -706,18 +706,18 @@ export function seedOnce(): void {
   // prop_4 — 789 Brannan (18 units in a high-rise, lobby + concierge)
   store.upsertUnit({ id: "unit_p4_201", propertyId: "prop_4", label: "201", floor: 2, bedrooms: 1, bathrooms: 1, sqft: 720, tenantIds: [], vacant: true, notes: "Vacant — short-term-rental allowed by HOA (max 6 mo/yr)." });
   store.upsertUnit({ id: "unit_p4_305", propertyId: "prop_4", label: "305", floor: 3, bedrooms: 1, bathrooms: 1, sqft: 740, tenantIds: [], vacant: true, notes: "Vacant — south-facing." });
-  store.upsertUnit({ id: "unit_p4_405", propertyId: "prop_4", label: "405", floor: 4, bedrooms: 1, bathrooms: 1, sqft: 760, lockboxCode: "0405", tenantIds: ["person_tenant_14"], notes: "Tenant works from home, schedule between 10a–4p only." });
+  store.upsertUnit({ id: "unit_p4_405", propertyId: "prop_4", label: "405", floor: 4, bedrooms: 1, bathrooms: 1, sqft: 760, lockboxCode: "0405", tenantIds: ["person_tenant_14"], ownership: "owner_occupied", notes: "Owner-occupant works from home, schedule between 10a–4p only." });
   store.upsertUnit({ id: "unit_p4_502", propertyId: "prop_4", label: "502", floor: 5, bedrooms: 2, bathrooms: 2, sqft: 1050, tenantIds: [], vacant: true, notes: "Vacant — recently re-painted." });
-  store.upsertUnit({ id: "unit_p4_607", propertyId: "prop_4", label: "607", floor: 6, bedrooms: 2, bathrooms: 2, sqft: 1080, lockboxCode: "0607", tenantIds: ["person_tenant_15"], notes: "Pet on file: cat (Pippin, calico). Allergy notes in file." });
-  store.upsertUnit({ id: "unit_p4_805", propertyId: "prop_4", label: "805", floor: 8, bedrooms: 2, bathrooms: 2, sqft: 1120, lockboxCode: "0805", tenantIds: ["person_tenant_16"], notes: "Wine fridge in kitchen — bring on quotes if dishwasher work touches the cabinetry around it." });
-  store.upsertUnit({ id: "unit_p4_902", propertyId: "prop_4", label: "902", floor: 9, bedrooms: 1, bathrooms: 1, sqft: 780, lockboxCode: "0902", tenantIds: ["person_tenant_17"], notes: "Heated floors in bathroom — Nuheat thermostat under the vanity if work needed." });
+  store.upsertUnit({ id: "unit_p4_607", propertyId: "prop_4", label: "607", floor: 6, bedrooms: 2, bathrooms: 2, sqft: 1080, lockboxCode: "0607", tenantIds: ["person_tenant_15"], ownership: "rental", notes: "Pet on file: cat (Pippin, calico). Allergy notes in file. Unit landlord pays for repairs." });
+  store.upsertUnit({ id: "unit_p4_805", propertyId: "prop_4", label: "805", floor: 8, bedrooms: 2, bathrooms: 2, sqft: 1120, lockboxCode: "0805", tenantIds: ["person_tenant_16"], ownership: "owner_occupied", notes: "Owner-occupant. Wine fridge in kitchen — bring on quotes if dishwasher work touches the cabinetry around it." });
+  store.upsertUnit({ id: "unit_p4_902", propertyId: "prop_4", label: "902", floor: 9, bedrooms: 1, bathrooms: 1, sqft: 780, lockboxCode: "0902", tenantIds: ["person_tenant_17"], ownership: "owner_occupied", notes: "Owner-occupant. Heated floors in bathroom — Nuheat thermostat under the vanity if work needed." });
   store.upsertUnit({ id: "unit_p4_1003", propertyId: "prop_4", label: "1003", floor: 10, bedrooms: 2, bathrooms: 2, sqft: 1140, tenantIds: [], vacant: true, notes: "Vacant — recent water-intrusion repair complete, paint touch-up pending." });
-  store.upsertUnit({ id: "unit_p4_1104", propertyId: "prop_4", label: "1104", floor: 11, bedrooms: 2, bathrooms: 2, sqft: 1180, lockboxCode: "1104", tenantIds: ["person_tenant_18"], notes: "Smart-home tenant — Lutron everything. Check the app for current scene states before flipping switches." });
-  store.upsertUnit({ id: "unit_p4_1205", propertyId: "prop_4", label: "1205", floor: 12, bedrooms: 2, bathrooms: 2, sqft: 1200, lockboxCode: "1205", tenantIds: ["person_tenant_19"], notes: "Newborn in unit — coordinate work hours via app, NO mid-day power-tools." });
+  store.upsertUnit({ id: "unit_p4_1104", propertyId: "prop_4", label: "1104", floor: 11, bedrooms: 2, bathrooms: 2, sqft: 1180, lockboxCode: "1104", tenantIds: ["person_tenant_18"], ownership: "owner_occupied", notes: "Owner-occupant. Smart-home — Lutron everything. Check the app for current scene states before flipping switches." });
+  store.upsertUnit({ id: "unit_p4_1205", propertyId: "prop_4", label: "1205", floor: 12, bedrooms: 2, bathrooms: 2, sqft: 1200, lockboxCode: "1205", tenantIds: ["person_tenant_19"], ownership: "rental", notes: "Newborn in unit — coordinate work hours via app, NO mid-day power-tools. Unit landlord pays for repairs." });
   store.upsertUnit({ id: "unit_p4_1302", propertyId: "prop_4", label: "1302", floor: 13, bedrooms: 1, bathrooms: 1, sqft: 800, tenantIds: [], vacant: true, notes: "Vacant — short-term staged for showings." });
-  store.upsertUnit({ id: "unit_p4_1402", propertyId: "prop_4", label: "1402", floor: 14, bedrooms: 2, bathrooms: 2, sqft: 1240, lockboxCode: "1402", tenantIds: ["person_tenant_20"], notes: "VIP unit — coordinate with owner direct for anything over $2k." });
+  store.upsertUnit({ id: "unit_p4_1402", propertyId: "prop_4", label: "1402", floor: 14, bedrooms: 2, bathrooms: 2, sqft: 1240, lockboxCode: "1402", tenantIds: ["person_tenant_20"], ownership: "owner_occupied", notes: "VIP unit — coordinate with owner direct for anything over $2k." });
   store.upsertUnit({ id: "unit_p4_1504", propertyId: "prop_4", label: "1504", floor: 15, bedrooms: 2, bathrooms: 2, sqft: 1260, tenantIds: [], vacant: true, notes: "Vacant — corner unit, panoramic SoMa view." });
-  store.upsertUnit({ id: "unit_p4_1602", propertyId: "prop_4", label: "1602", floor: 16, bedrooms: 3, bathrooms: 2, sqft: 1480, lockboxCode: "1602", tenantIds: ["person_tenant_21"], notes: "Heated towel rack in primary bath — Mr. Steam install, vendor on file." });
+  store.upsertUnit({ id: "unit_p4_1602", propertyId: "prop_4", label: "1602", floor: 16, bedrooms: 3, bathrooms: 2, sqft: 1480, lockboxCode: "1602", tenantIds: ["person_tenant_21"], ownership: "rental", notes: "Renter. Heated towel rack in primary bath — Mr. Steam install, vendor on file. Unit landlord pays for repairs." });
   store.upsertUnit({ id: "unit_p4_1701", propertyId: "prop_4", label: "1701 (PH)", floor: 17, bedrooms: 3, bathrooms: 3, sqft: 1820, tenantIds: [], vacant: true, spendCapCents: 250000, notes: "Penthouse — owner-occupied unit, vacant Apr–Sep while owner is in NYC." });
   store.upsertUnit({ id: "unit_p4_1702", propertyId: "prop_4", label: "1702 (PH)", floor: 17, bedrooms: 3, bathrooms: 3, sqft: 1820, tenantIds: [], vacant: true, spendCapCents: 250000, notes: "Penthouse — currently listed for $9,800/mo. Tours via concierge." });
   store.upsertUnit({ id: "unit_p4_g01", propertyId: "prop_4", label: "G01 (live/work)", floor: 1, bedrooms: 0, bathrooms: 1, sqft: 950, tenantIds: [], vacant: true, notes: "Ground-floor live/work — separate Brannan St entry. Currently vacant." });
@@ -781,16 +781,42 @@ export function seedOnce(): void {
   // the contractor's bank account — Sponge's banking rail handles that leg.
   const HANDLE_CONTRACTOR_ESCROW = "AzSqf7aAND7iwjFyPqakki7XQ5ogMwSxqhp3cmGCvvcU";
 
-  // Contractor pool
+  // Contractor pool — Bay Area vendors Handle dispatches to.
+  // Wallets on file get instant USDC payouts via Sponge; others get a check.
   const contractors = [
-    { id: "ctr_1", name: "Bay Area Plumbing Co.", phone: "+14155552001", trades: ["plumbing"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW },
-    { id: "ctr_2", name: "Mission Electric", phone: "+14155552002", trades: ["electrical"], rating: 4.6, city: "San Francisco" },
-    { id: "ctr_3", name: "FastFix HVAC", phone: "+14155552003", trades: ["hvac"], rating: 4.4, city: "San Francisco" },
-    { id: "ctr_4", name: "GoldenGate Locksmith", phone: "+14155552004", trades: ["locksmith"], rating: 4.9, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW },
-    { id: "ctr_5", name: "All-Around Handy", phone: "+14155552005", trades: ["general", "appliance"], rating: 4.5, city: "Oakland" },
+    // Plumbing
+    { id: "ctr_1", name: "Bay Area Plumbing Co.", phone: "+14155552001", trades: ["plumbing"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Knows Priya's pre-1930s buildings cold. 24hr emergency line. COI on file." },
+    { id: "ctr_6", name: "Roto-Rooter SF",         phone: "+14155552006", trades: ["plumbing"], rating: 4.3, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Big-name backup. Best for emergencies when Bay Area Plumbing is booked." },
+    { id: "ctr_7", name: "Sunset Drain Pros",      phone: "+14155552007", trades: ["plumbing"], rating: 4.7, city: "San Francisco", notes: "Drain specialists. Snake + hydro-jet. No new construction." },
+    // Electrical
+    { id: "ctr_2",  name: "Mission Electric",      phone: "+14155552002", trades: ["electrical"], rating: 4.6, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Marcus's preferred for 789 Brannan. Licensed C-10." },
+    { id: "ctr_8",  name: "Pacific Power Works",   phone: "+14155552008", trades: ["electrical"], rating: 4.5, city: "San Francisco", notes: "Strong on EV charger installs + service upgrades." },
+    { id: "ctr_9",  name: "Bay Knob-and-Tube Specialists", phone: "+14155552009", trades: ["electrical"], rating: 4.8, city: "San Francisco", notes: "Niche — Victorian rewires. Two-week lead time but worth it." },
+    // HVAC
+    { id: "ctr_3",  name: "FastFix HVAC",          phone: "+14155552003", trades: ["hvac"], rating: 4.4, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Commissioned 388 Mission Bay Blvd S. Daikin & Mitsubishi certified." },
+    { id: "ctr_10", name: "Diablo Power & HVAC",   phone: "+14155552010", trades: ["hvac"], rating: 4.6, city: "Concord", notes: "East Bay base. Generator service for 2400 Steiner." },
+    { id: "ctr_11", name: "City Boiler Service",   phone: "+14155552011", trades: ["hvac"], rating: 4.9, city: "San Francisco", notes: "Old radiator boilers — they know the 2151 Hayes Burnham by name." },
+    // Locksmith
+    { id: "ctr_4",  name: "GoldenGate Locksmith",  phone: "+14155552004", trades: ["locksmith"], rating: 4.9, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Best response time in SF (avg 22 min). Smart-lock certified." },
+    { id: "ctr_12", name: "Mission Lock & Key",    phone: "+14155552012", trades: ["locksmith"], rating: 4.4, city: "San Francisco", notes: "Walk-in shop on Mission. Cheaper for non-emergency rekey." },
+    // Appliance
+    { id: "ctr_13", name: "SF Appliance Doctor",   phone: "+14155552013", trades: ["appliance"], rating: 4.7, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Authorized Bosch + Sub-Zero. Will check warranty first." },
+    { id: "ctr_14", name: "Mr. Fix-it Appliances", phone: "+14155552014", trades: ["appliance"], rating: 4.3, city: "Daly City", notes: "Budget option. Honest about when a unit is end-of-life." },
+    // General / handy
+    { id: "ctr_5",  name: "All-Around Handy",      phone: "+14155552005", trades: ["general", "appliance"], rating: 4.5, city: "Oakland", notes: "Solid generalist. Great for punch-list days on turnovers." },
+    { id: "ctr_15", name: "TaskRabbit Pro Network", phone: "+14155552015", trades: ["general"], rating: 4.2, city: "San Francisco", notes: "Routed via TR API. Same-day for small jobs under $200." },
+    // Pest / Cleaning / Roofing / Landscaping
+    { id: "ctr_16", name: "Cascade Pest Control",  phone: "+14155552016", trades: ["pest_control"], rating: 4.6, city: "San Francisco", notes: "Quarterly contract for prop_1 + prop_3. Eco-friendly options." },
+    { id: "ctr_17", name: "Sparkle SF Cleaning",   phone: "+14155552017", trades: ["cleaning"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Turnover cleans. Brings their own supplies." },
+    { id: "ctr_18", name: "Bay Roofers",           phone: "+14155552018", trades: ["roofing"], rating: 4.9, city: "San Francisco", notes: "Did 342 Valencia roof in 2022 — warranty active. Storm response within 4hr." },
+    { id: "ctr_19", name: "Presidio Landscaping",  phone: "+14155552019", trades: ["landscaping"], rating: 4.5, city: "San Francisco", notes: "Monthly maintenance for 2400 Steiner. Hardscape too." },
+    // Browser-Use discovered (newer, no rating yet)
+    { id: "ctr_20", name: "Trace Mechanical (HVAC)", phone: "+14155552020", trades: ["hvac"], rating: 4.1, city: "San Francisco", notes: "Discovered via Browser Use search 2026-04. First job pending.", source: "browser_use" as const },
+    { id: "ctr_21", name: "Castro Drain & Pipe",   phone: "+14155552021", trades: ["plumbing"], rating: 4.0, city: "San Francisco", notes: "Discovered via Browser Use search 2026-03 (Castro neighborhood specialist).", source: "browser_use" as const },
   ] as const;
   for (const c of contractors) {
-    store.upsertContractor({ ...c, trades: [...c.trades], source: "directory" });
+    const { source, ...rest } = c as typeof c & { source?: "directory" | "browser_use" | "manual" };
+    store.upsertContractor({ ...rest, trades: [...rest.trades], source: source ?? "directory" });
   }
 
   // One in-flight job, one completed, one new

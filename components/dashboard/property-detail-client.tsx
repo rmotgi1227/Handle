@@ -145,6 +145,7 @@ export function PropertyDetailClient({ initialContext }: { initialContext: Ctx }
           sqft: u.unit.sqft,
           spendCapCents: u.effectiveSpendCapCents,
           jobCount: u.recentJobIds.length,
+          ownership: u.ownership,
         });
       }
     }
@@ -419,9 +420,11 @@ type TenantRow = {
   sqft?: number;
   spendCapCents?: number;
   jobCount: number;
+  ownership: "rental" | "owner_occupied";
 };
 
 type SortKey = "name" | "unit" | "jobs";
+type TypeFilter = "all" | "renters" | "owners";
 
 function TenantTable({
   rows,
@@ -433,14 +436,21 @@ function TenantTable({
   totalUnits: number;
 }) {
   const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
     key: "unit",
     dir: "asc",
   });
 
+  const ownerCount = useMemo(
+    () => rows.filter((r) => r.ownership === "owner_occupied").length,
+    [rows],
+  );
+  const renterCount = rows.length - ownerCount;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q
+    let base = q
       ? rows.filter((r) => {
           const hay = [
             r.person.name,
@@ -454,6 +464,9 @@ function TenantTable({
         })
       : rows;
 
+    if (typeFilter === "renters") base = base.filter((r) => r.ownership === "rental");
+    else if (typeFilter === "owners") base = base.filter((r) => r.ownership === "owner_occupied");
+
     const dir = sort.dir === "asc" ? 1 : -1;
     const sorted = [...base].sort((a, b) => {
       if (sort.key === "name") return a.person.name.localeCompare(b.person.name) * dir;
@@ -463,7 +476,7 @@ function TenantTable({
       );
     });
     return sorted;
-  }, [rows, query, sort]);
+  }, [rows, query, sort, typeFilter]);
 
   function toggleSort(key: SortKey) {
     setSort((prev) =>
@@ -492,6 +505,25 @@ function TenantTable({
           </h2>
         </div>
         <div className="flex items-center gap-2">
+          <div className="inline-flex h-9 items-center rounded-full border border-[#E8E3DA] bg-white p-0.5 text-[11px] font-bold uppercase tracking-[0.1em]">
+            <FilterChip
+              label={`All · ${rows.length}`}
+              active={typeFilter === "all"}
+              onClick={() => setTypeFilter("all")}
+            />
+            <FilterChip
+              label={`Renters · ${renterCount}`}
+              active={typeFilter === "renters"}
+              tone="blue"
+              onClick={() => setTypeFilter("renters")}
+            />
+            <FilterChip
+              label={`Owners · ${ownerCount}`}
+              active={typeFilter === "owners"}
+              tone="orange"
+              onClick={() => setTypeFilter("owners")}
+            />
+          </div>
           <label className="relative inline-flex items-center">
             <Search className="pointer-events-none absolute left-3 size-3.5 text-[#9AA0A0]" />
             <input
@@ -538,9 +570,10 @@ function TenantTable({
                     onClick={() => toggleSort("unit")}
                   />
                 </th>
+                <th className="px-3 py-3">Type</th>
                 <th className="px-3 py-3">Phone</th>
                 <th className="px-3 py-3">Email</th>
-                <th className="px-3 py-3">Spend cap</th>
+                <th className="px-3 py-3">Repair billing</th>
                 <th className="px-3 py-3">
                   <SortButton
                     label="Jobs"
@@ -564,7 +597,11 @@ function TenantTable({
                     <div className="flex items-center gap-3">
                       <span
                         aria-hidden
-                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#15161A] text-xs font-black text-[#F6F4EF]"
+                        className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-black text-[#F6F4EF] ${
+                          r.ownership === "owner_occupied"
+                            ? "bg-[#E8572A]"
+                            : "bg-[#15161A]"
+                        }`}
                       >
                         {initialsOf(r.person.name)}
                       </span>
@@ -573,22 +610,25 @@ function TenantTable({
                           {r.person.name}
                         </div>
                         <div className="text-[0.7rem] font-medium text-[#9AA0A0]">
-                          Tenant · ID {r.person.id.slice(0, 6)}
+                          {r.ownership === "owner_occupied" ? "Unit owner" : "Renter"} · ID {r.person.id.slice(0, 6)}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-3 py-3">
                     <div className="inline-flex items-center gap-2">
-                      <span className="inline-flex size-7 items-center justify-center rounded-md border border-[#E8E3DA] bg-[#F6F4EF] text-xs font-black tabular-nums text-[#15161A]">
+                      <span className="inline-flex h-7 min-w-[44px] items-center justify-center rounded-md border border-[#E8E3DA] bg-[#F6F4EF] px-1.5 text-xs font-black tabular-nums text-[#15161A]">
                         {r.unitLabel}
                       </span>
-                      <span className="text-[0.7rem] font-medium text-[#6B7070]">
-                        {r.floor ? `Fl ${r.floor}` : ""}
-                        {r.floor && r.sqft ? " · " : ""}
-                        {r.sqft ? `${r.sqft} sqft` : ""}
-                      </span>
+                      {r.sqft ? (
+                        <span className="text-[0.7rem] font-medium tabular-nums text-[#6B7070]">
+                          {r.sqft} sqft
+                        </span>
+                      ) : null}
                     </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <TypeBadge ownership={r.ownership} />
                   </td>
                   <td className="px-3 py-3 font-mono text-[0.8rem] tabular-nums text-[#15161A]">
                     {r.person.phone}
@@ -600,8 +640,26 @@ function TenantTable({
                       <span className="text-[#9AA0A0]">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 font-mono text-[0.8rem] font-bold tabular-nums text-[#15161A]">
-                    {r.spendCapCents ? fmtUsd(r.spendCapCents) : "—"}
+                  <td className="px-3 py-3">
+                    {r.ownership === "owner_occupied" ? (
+                      <div className="flex flex-col leading-tight">
+                        <span className="font-mono text-[0.78rem] font-bold tabular-nums text-[#E8572A]">
+                          Owner pays
+                        </span>
+                        <span className="text-[0.65rem] font-medium text-[#9AA0A0]">
+                          Confirms spend live
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col leading-tight">
+                        <span className="font-mono text-[0.8rem] font-bold tabular-nums text-[#15161A]">
+                          {r.spendCapCents ? fmtUsd(r.spendCapCents) : "—"}
+                        </span>
+                        <span className="text-[0.65rem] font-medium text-[#9AA0A0]">
+                          Landlord covers
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-3">
                     <span
@@ -681,6 +739,56 @@ function initialsOf(name: string): string {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+function TypeBadge({ ownership }: { ownership: "rental" | "owner_occupied" }) {
+  const isOwner = ownership === "owner_occupied";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${
+        isOwner
+          ? "bg-[#FCE9DF] text-[#C24919]"
+          : "bg-[#E6EBF1] text-[#3B5A78]"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`size-1.5 rounded-full ${isOwner ? "bg-[#E8572A]" : "bg-[#3B5A78]"}`}
+      />
+      {isOwner ? "Owner" : "Renter"}
+    </span>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  tone = "ink",
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  tone?: "ink" | "blue" | "orange";
+  onClick: () => void;
+}) {
+  const activeColor =
+    tone === "blue"
+      ? "bg-[#3B5A78] text-white"
+      : tone === "orange"
+        ? "bg-[#E8572A] text-white"
+        : "bg-[#15161A] text-white";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex h-8 items-center rounded-full px-3 transition-colors ${
+        active ? activeColor : "text-[#6B7070] hover:text-[#15161A]"
+      }`}
+    >
+      {label}
+    </button>
+  );
 }
 
 /* ---- Sidebar accordion (collapsible building info section) --------------- */
