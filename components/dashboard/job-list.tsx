@@ -57,17 +57,26 @@ export function JobList({
   initialJobs,
   contractors,
   properties,
+  filterStatuses,
 }: {
   initialJobs: Job[];
   contractors: Contractor[];
   properties: Property[];
+  /** Restrict polled data to these statuses (after the polling refresh
+   * replaces initialJobs with all jobs). Lets one component back both an
+   * "Active" and "Closed" section on /dashboard/jobs without one eating
+   * the other. */
+  filterStatuses?: Job["status"][];
 }) {
   // Only `/api/jobs` is part of the v1 API surface; contractors and
   // properties are stable enough to ship once at first paint. Re-renders
   // come for free as `/api/jobs` ticks.
   const jobsRes = usePollingFetch<JobsResponse>("/api/jobs", 5000);
 
-  const jobs = jobsRes.data?.jobs ?? initialJobs;
+  const allJobs = jobsRes.data?.jobs ?? initialJobs;
+  const jobs = filterStatuses
+    ? allJobs.filter((j) => filterStatuses.includes(j.status))
+    : allJobs;
   const contractorList = contractors;
   const propertyList = properties;
 
