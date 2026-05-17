@@ -65,6 +65,20 @@ export async function createInvoiceForJob(
   input: CreateInvoiceInput,
 ): Promise<CreateInvoiceResult> {
   const job = getJobOrThrow(input.jobId);
+  if (job.status === "paid" || job.status === "completed") {
+    throw new ActionError(
+      "already_settled",
+      `cannot invoice a job that is already ${job.status}`,
+      400,
+    );
+  }
+  if (job.totalCostCents) {
+    throw new ActionError(
+      "already_invoiced",
+      `job already has invoice amount $${(job.totalCostCents / 100).toFixed(2)}`,
+      400,
+    );
+  }
 
   const property = store.properties.get(job.propertyId);
   const owner = property ? store.people.get(property.ownerId) : undefined;
@@ -301,6 +315,10 @@ export async function recordOwnerPayment(
   input: RecordOwnerPaymentInput,
 ): Promise<void> {
   const job = getJobOrThrow(input.jobId);
+  // Idempotency: Stripe replays webhooks on retry; only record once.
+  if (job.ownerPaidAt) {
+    return;
+  }
   store.upsertJob({ id: job.id, ownerPaidAt: input.paidAt, status: "completed" });
   store.appendEvent({
     jobId: job.id,

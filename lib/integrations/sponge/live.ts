@@ -98,11 +98,13 @@ export const sponge: SpongeClient = {
       ...(memo ? { data: memo } : {}),
     }) as Record<string, unknown>;
 
-    const txnHash = (result.txid ?? result.signature ?? result.hash ?? result.transaction_hash) as string | undefined;
+    // Sponge MCP returns `transactionHash` (camelCase); accept other casings defensively.
+    const txnHash = (result.transactionHash ?? result.txid ?? result.signature ?? result.hash ?? result.transaction_hash) as string | undefined;
     if (!txnHash) {
       throw new IntegrationError("sponge", `transfer succeeded but no txnHash in response: ${JSON.stringify(result)}`);
     }
-    return { txnHash };
+    const explorerUrl = (result.explorerUrl ?? result.explorer_url) as string | undefined;
+    return { txnHash, explorerUrl };
   },
 
   async getTransactionStatus(txnHash: string): Promise<SpongeTxStatus> {

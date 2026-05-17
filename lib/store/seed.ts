@@ -675,12 +675,13 @@ export function seedOnce(): void {
     id: "job_seed_active",
     propertyId: "prop_1",
     reportedByPersonId: "person_tenant_1",
-    status: "sourcing_contractor",
+    status: "in_progress",
     urgency: "urgent",
     trade: "plumbing",
     title: "Kitchen sink leaking under cabinet",
     description: "Tenant reports water pooling under the sink. Visible drip from the drain trap.",
     callIds: ["call_seed_1"],
+    assignedContractorId: "ctr_1",
   });
 
   store.upsertCall({
@@ -709,6 +710,8 @@ export function seedOnce(): void {
   store.appendEvent({ jobId: "job_seed_active", kind: "contractor_search_started", title: "Searching for plumbers within 5 miles", at: iso(9) });
   store.appendEvent({ jobId: "job_seed_active", kind: "contractor_search_completed", title: "Found 3 candidates", data: { contractorIds: ["ctr_1"] }, at: iso(8) });
   store.appendEvent({ jobId: "job_seed_active", kind: "contractor_dial_started", title: "Dialing Bay Area Plumbing Co.", at: iso(7) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_assigned", title: "Assigned Bay Area Plumbing Co.", detail: "Quote accepted: ETA 30 min", at: iso(5) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "work_started", title: "Plumber on-site", at: iso(2) });
 
   store.upsertJob({
     id: "job_seed_done",

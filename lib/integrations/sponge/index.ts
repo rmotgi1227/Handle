@@ -9,6 +9,7 @@ export interface SpongeBalance {
 
 export interface SpongePayResult {
   txnHash: string;
+  explorerUrl?: string;
 }
 
 export interface SpongeTxStatus {

@@ -44,7 +44,8 @@ export default async function JobDetailPage({
   async function sendInvoice() {
     "use server";
     try {
-      await createInvoiceForJob({ jobId: id, amountCents: 18500 });
+      // $1.00 demo amount — fits comfortably within the live Sponge wallet's USDC balance.
+      await createInvoiceForJob({ jobId: id, amountCents: 100 });
       revalidatePath(`/dashboard/jobs/${id}`);
     } catch (err) {
       console.error("[sendInvoice]", err);
@@ -220,15 +221,17 @@ export default async function JobDetailPage({
                   Mark complete
                 </button>
               </form>
-              <form action={sendInvoice}>
-                <button
-                  type="submit"
-                  className="flex w-full items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-semibold text-[#15161A] transition-colors hover:bg-[#EEEBE4] hover:border-[#D5CFC6]"
-                >
-                  <Receipt className="size-3.5 text-[#3B5A78]" />
-                  Send invoice
-                </button>
-              </form>
+              {!job.totalCostCents ? (
+                <form action={sendInvoice}>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-semibold text-[#15161A] transition-colors hover:bg-[#EEEBE4] hover:border-[#D5CFC6]"
+                  >
+                    <Receipt className="size-3.5 text-[#3B5A78]" />
+                    Send invoice
+                  </button>
+                </form>
+              ) : null}
               <form action={sendSurvey}>
                 <button
                   type="submit"
@@ -252,10 +255,15 @@ export default async function JobDetailPage({
                 </form>
               ) : null}
               {job.paymentTxnHash ? (
-                <div className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070]">
+                <a
+                  href={`https://solscan.io/tx/${job.paymentTxnHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="col-span-2 flex items-center gap-2 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-xs font-medium text-[#6B7070] hover:bg-[#EEEBE4] hover:text-[#15161A]"
+                >
                   <Banknote className="size-3.5 shrink-0 text-[#3B5A78]" />
-                  <span className="truncate">Contractor paid · {job.paymentTxnHash}</span>
-                </div>
+                  <span className="truncate">Contractor paid · {job.paymentTxnHash.slice(0, 8)}…{job.paymentTxnHash.slice(-6)}</span>
+                </a>
               ) : null}
               {job.paymentTxnHash && !job.ownerInvoiceId ? (
                 <form action={billOwner} className="col-span-2">

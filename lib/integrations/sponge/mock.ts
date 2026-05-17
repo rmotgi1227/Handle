@@ -15,7 +15,8 @@ export const sponge: SpongeClient = {
   },
 
   async payContractor({ toAddress, amountUsdc }) {
-    return { txnHash: fakeTxHash(toAddress, amountUsdc) };
+    const txnHash = fakeTxHash(toAddress, amountUsdc);
+    return { txnHash, explorerUrl: `https://solscan.io/tx/${txnHash}` };
   },
 
   async getTransactionStatus(_txnHash) {
