@@ -141,23 +141,9 @@ describe("browseruse mock", () => {
 });
 
 describe("sponge mock", () => {
-  it("createInvoice + getInvoice produce the expected shape", async () => {
-    const inv = await sponge.createInvoice({
-      contractorId: "ctr_seed_1",
-      payerEmail: "owner@example.com",
-      amountCents: 24_900,
-      memo: "Plumbing repair",
-    });
-    expect(inv).toMatchObject({
-      invoiceId: expect.any(String),
-      payUrl: expect.any(String),
-    });
-
-    const first = await sponge.getInvoice(inv.invoiceId);
-    expect(first).toMatchObject({ status: expect.any(String) });
-
-    const second = await sponge.getInvoice(inv.invoiceId);
-    expect(second).toMatchObject({ status: expect.any(String) });
+  it("checkBalance returns expected shape", async () => {
+    const bal = await sponge.checkBalance();
+    expect(bal).toMatchObject({ usdc: expect.any(Number) });
   });
 });
 
@@ -169,5 +155,40 @@ describe("agentmail mock", () => {
       text: "Pay here: https://demo.sponge.test/pay/abc",
     });
     expect(out).toMatchObject({ messageId: expect.any(String) });
+  });
+});
+
+describe("gemini mock — analyzeMedia", () => {
+  it("returns description and severity", async () => {
+    const result = await gemini.analyzeMedia({
+      mediaUrl: "https://example.com/img.jpg",
+      mimeType: "image/jpeg",
+    });
+    expect(result).toMatchObject({
+      description: expect.any(String),
+      severity: expect.stringMatching(/^(emergency|urgent|standard)$/),
+    });
+    expect(result.description.length).toBeGreaterThan(10);
+  });
+});
+
+describe("agentphone mock — parseVoiceWebhook", () => {
+  it("returns required shape from a voice turn", async () => {
+    const req = new Request("http://localhost/api/calls/voice", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        fromNumber: "+14155551410",
+        transcript: "My kitchen sink is flooding.",
+        recentHistory: [],
+      }),
+    });
+    const out = await agentphone.parseVoiceWebhook(req);
+    expect(out).toMatchObject({
+      callId: expect.any(String),
+      fromNumber: expect.any(String),
+      transcript: expect.any(String),
+      recentHistory: expect.any(Array),
+    });
   });
 });

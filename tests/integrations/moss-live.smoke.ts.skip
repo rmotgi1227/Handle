@@ -1,0 +1,17 @@
+// Run manually with: pnpm vitest run tests/integrations/moss-live.smoke.ts.skip --no-coverage
+// Requires real MOSS_PROJECT_ID + MOSS_PROJECT_KEY + MOSS_MODE=live in .env.local.
+import { describe, it, expect } from "vitest";
+import { moss } from "@/lib/integrations/moss";
+
+describe("moss live smoke", () => {
+  it("can init and search", async () => {
+    await moss.init();
+    await moss.indexKnowledge({
+      id: "kb_smoke_001",
+      text: "kitchen sink leak troubleshooting guide",
+      tags: ["plumbing", "smoke"],
+    });
+    const out = await moss.searchKnowledge({ query: "leak", topK: 3 });
+    expect(Array.isArray(out.hits)).toBe(true);
+  });
+});

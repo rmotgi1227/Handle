@@ -1,14 +1,282 @@
 import { nanoid } from "nanoid";
 import { store } from "@/lib/store/memory";
 import { agentphone } from "@/lib/integrations/agentphone";
+import type { NegotiationContext } from "@/lib/integrations/agentphone";
 import { gemini } from "@/lib/integrations/gemini";
 import { supermemory } from "@/lib/integrations/supermemory";
 import { browseruse } from "@/lib/integrations/browseruse";
+import { moss } from "@/lib/integrations/moss";
 import type {
   Contractor,
   ContractorCallOutcome,
+  Job,
+  JobUrgency,
   Trade,
 } from "@/lib/types";
+
+export interface RecallContext {
+  pastJobs: { id: string; text: string; score: number }[];
+  ownerPreferences: { id: string; text: string; score: number }[];
+  contractorHits: { contractorId: string; score: number }[];
+  knowledgeHits: { id: string; text: string; score: number }[];
+}
+
+interface BuildRecallContextInput {
+  trade: Trade;
+  city: string;
+  problem: string;
+  address: string | undefined;
+}
+
+async function buildRecallContext(input: BuildRecallContextInput): Promise<RecallContext> {
+  const recallQuery = `${input.address ?? "unknown"} ${input.trade}`;
+  const knowledgeQuery = `${input.trade} ${input.problem}`;
+
+  const [knowledgeRes, contractorRes, memoryRes] = await Promise.all([
+    moss.searchKnowledge({ query: knowledgeQuery, topK: 3 }).catch((e) => {
+      console.warn("[orchestrator] moss.searchKnowledge failed:", e);
+      return { hits: [] as { id: string; text: string; score: number }[] };
+    }),
+    moss
+      .searchContractors({
+        trade: input.trade,
+        city: input.city,
+        problem: input.problem,
+        topK: 5,
+      })
+      .catch((e) => {
+        console.warn("[orchestrator] moss.searchContractors failed:", e);
+        return { hits: [] as { contractorId: string; score: number }[] };
+      }),
+    supermemory.recall({ query: recallQuery, topK: 6 }).catch((e) => {
+      console.warn("[orchestrator] supermemory.recall failed:", e);
+      return { memories: [] as { id: string; text: string; score: number }[] };
+    }),
+  ]);
+
+  // Owner prefs and past jobs come from the same Supermemory pool; split by tag-ish heuristics.
+  const owner: RecallContext["ownerPreferences"] = [];
+  const past: RecallContext["pastJobs"] = [];
+  for (const m of memoryRes.memories) {
+    if (/owner|prefer|portfolio|authoriz/i.test(m.text)) owner.push(m);
+    else past.push(m);
+  }
+
+  return {
+    pastJobs: past,
+    ownerPreferences: owner,
+    contractorHits: contractorRes.hits,
+    knowledgeHits: knowledgeRes.hits,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// buildNegotiationContext — assemble per-call dispatch brief for the agent
+// ---------------------------------------------------------------------------
+//
+// The contractor-dispatch agent reads `conversationState` to negotiate with
+// real numbers: target/walk-away derived from past-job prices for this trade,
+// competitor anchors named in the past-job recall, and known history with
+// THIS contractor. All optional fields fall back to trade-typical defaults
+// when recall is thin (cold-start property, brand-new contractor).
+
+const TRADE_DEFAULTS: Record<Trade, { targetCents: number; walkAwayCents: number; marketContext: string }> = {
+  plumbing:     { targetCents: 18000, walkAwayCents: 28000, marketContext: "SF plumbing routine calls $150-$250; emergencies $200-$400." },
+  electrical:   { targetCents: 22000, walkAwayCents: 40000, marketContext: "SF electrical typically $200-$350 routine; panel work $400-$800." },
+  hvac:         { targetCents: 25000, walkAwayCents: 45000, marketContext: "SF HVAC service calls $200-$300; capacitor / minor parts +$50-$150." },
+  appliance:    { targetCents: 17500, walkAwayCents: 30000, marketContext: "SF appliance repair $150-$250 typical; parts can push over $300." },
+  locksmith:    { targetCents: 14000, walkAwayCents: 22500, marketContext: "SF lockouts $100-$200; rekey work $150-$250." },
+  pest_control: { targetCents: 18000, walkAwayCents: 35000, marketContext: "SF pest control initial $150-$300; recurring lower." },
+  cleaning:     { targetCents: 20000, walkAwayCents: 40000, marketContext: "SF deep cleans $200-$400 depending on unit size." },
+  general:      { targetCents: 15000, walkAwayCents: 30000, marketContext: "SF handyman $100-$200/visit for routine, more for multi-task days." },
+  roofing:      { targetCents: 35000, walkAwayCents: 75000, marketContext: "SF roofing leaks $300-$700; full inspection extra." },
+  landscaping:  { targetCents: 15000, walkAwayCents: 30000, marketContext: "SF landscaping $150-$300/visit routine maintenance." },
+};
+
+interface PastJobSummary {
+  contractorName: string;
+  amountCents: number;
+  whenAgo: string;
+  text: string;
+}
+
+/** Pull a dollar amount out of a memory text. "$215" → 21500 cents. */
+function extractAmountCents(text: string): number | null {
+  const m = text.match(/\$\s?(\d{2,5})(?:\.(\d{2}))?/);
+  if (!m) return null;
+  const dollars = Number.parseInt(m[1], 10);
+  const cents = m[2] ? Number.parseInt(m[2], 10) : 0;
+  return dollars * 100 + cents;
+}
+
+/** Pull a contractor name from "resolved by <Name> on YYYY-MM-DD" — seed-shape. */
+function extractContractorName(text: string): string | null {
+  const m = text.match(/resolved by ([A-Z][\w& '-]+?)(?: on |,|\.)/);
+  return m ? m[1].trim() : null;
+}
+
+/** Pull a date and turn it into a relative "ago" string. */
+function extractWhenAgo(text: string, now: Date = new Date()): string {
+  const m = text.match(/on (\d{4}-\d{2}-\d{2})/);
+  if (!m) return "recently";
+  const then = new Date(m[1]);
+  const days = Math.round((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "today";
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+  if (days < 30) return `${Math.round(days / 7)} week${Math.round(days / 7) === 1 ? "" : "s"} ago`;
+  if (days < 365) return `${Math.round(days / 30)} month${Math.round(days / 30) === 1 ? "" : "s"} ago`;
+  return `${Math.round(days / 365)} year${Math.round(days / 365) === 1 ? "" : "s"} ago`;
+}
+
+function summarizePastJobs(memories: { text: string }[]): PastJobSummary[] {
+  return memories
+    .map((m) => {
+      const amount = extractAmountCents(m.text);
+      const name = extractContractorName(m.text);
+      if (amount === null || !name) return null;
+      return {
+        contractorName: name,
+        amountCents: amount,
+        whenAgo: extractWhenAgo(m.text),
+        text: m.text,
+      };
+    })
+    .filter((x): x is PastJobSummary => x !== null);
+}
+
+interface NegotiationBoundsInput {
+  trade: Trade;
+  urgency: JobUrgency;
+  pastJobs: PastJobSummary[];
+}
+
+/**
+ * Derive target + walk-away from past-job prices for this trade. Median →
+ * target; +60% buffer → walk-away. Bumps for emergency urgency (we'll pay
+ * a premium when the unit is actively flooding). Falls back to trade
+ * defaults when there are <2 historical comps.
+ */
+function deriveBounds({ trade, urgency, pastJobs }: NegotiationBoundsInput): {
+  targetCents: number;
+  walkAwayCents: number;
+} {
+  if (pastJobs.length < 2) {
+    const d = TRADE_DEFAULTS[trade];
+    const bump = urgency === "emergency" ? 1.35 : urgency === "urgent" ? 1.1 : 1;
+    return {
+      targetCents: Math.round(d.targetCents * bump),
+      walkAwayCents: Math.round(d.walkAwayCents * bump),
+    };
+  }
+  const sorted = [...pastJobs].map((p) => p.amountCents).sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const bump = urgency === "emergency" ? 1.35 : urgency === "urgent" ? 1.1 : 1;
+  return {
+    targetCents: Math.round(median * bump),
+    walkAwayCents: Math.round(median * 1.6 * bump),
+  };
+}
+
+interface BuildNegotiationContextInput {
+  job: Job;
+  contractor: Contractor;
+  property: { address: string; unit?: string } | undefined;
+  recall: RecallContext;
+}
+
+/**
+ * Builds the dispatch brief handed to the contractor-dispatch agent for one
+ * specific contractor. Anchors come from past-job prices for the same
+ * trade (excluding the row that names this contractor — we don't anchor
+ * against their own prior work). History line names this contractor's
+ * past job count + avg price if any.
+ */
+export function buildNegotiationContext(
+  input: BuildNegotiationContextInput,
+): NegotiationContext {
+  const { job, contractor, property, recall } = input;
+
+  const pastSummaries = summarizePastJobs(recall.pastJobs);
+  const tradeHistory = pastSummaries.filter((p) =>
+    new RegExp(`\\b${job.trade}\\b`, "i").test(p.text),
+  );
+  const tradeHistoryForBounds = tradeHistory.length > 0 ? tradeHistory : pastSummaries;
+  const bounds = deriveBounds({
+    trade: job.trade,
+    urgency: job.urgency,
+    pastJobs: tradeHistoryForBounds,
+  });
+
+  // Competitor anchors: same-trade past jobs from OTHER contractors only.
+  const competitorAnchors = tradeHistory
+    .filter((p) => p.contractorName.toLowerCase() !== contractor.name.toLowerCase())
+    .slice(0, 3)
+    .map((p) => ({
+      contractorName: p.contractorName,
+      amountCents: p.amountCents,
+      whenAgo: p.whenAgo,
+    }));
+
+  // History with THIS contractor.
+  const ownPast = pastSummaries.filter(
+    (p) => p.contractorName.toLowerCase() === contractor.name.toLowerCase(),
+  );
+  let historyLine: string | undefined;
+  if (ownPast.length > 0) {
+    const avg = Math.round(
+      ownPast.reduce((s, p) => s + p.amountCents, 0) / ownPast.length,
+    );
+    historyLine =
+      `We've dispatched ${contractor.name} ${ownPast.length} time${ownPast.length === 1 ? "" : "s"} before — ` +
+      `average $${(avg / 100).toFixed(0)}. Most recent: ${ownPast[0].whenAgo}.`;
+  } else if (contractor.rating !== undefined) {
+    historyLine = `No prior jobs with ${contractor.name} on file. Public rating ${contractor.rating}/5.`;
+  }
+
+  const knowledgeText = recall.knowledgeHits
+    .slice(0, 2)
+    .map((k) => k.text)
+    .join(" ");
+  const ownerPrefText = recall.ownerPreferences
+    .slice(0, 1)
+    .map((o) => o.text)
+    .join(" ");
+  const marketContext = [
+    TRADE_DEFAULTS[job.trade].marketContext,
+    knowledgeText,
+    ownerPrefText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const timeline =
+    job.urgency === "emergency"
+      ? "Within the hour. Tenant is on site now and damage is actively occurring."
+      : job.urgency === "urgent"
+        ? "Today if at all possible — first half of tomorrow is the absolute latest."
+        : "In the next day or two — let them pick a reasonable window.";
+
+  return {
+    job: {
+      trade: job.trade,
+      urgency: job.urgency,
+      address: property?.address ?? "(address pending)",
+      unit: property?.unit,
+      description: job.description,
+    },
+    pricing: {
+      targetCents: bounds.targetCents,
+      walkAwayCents: bounds.walkAwayCents,
+      marketContext,
+      competitorAnchors,
+    },
+    contractor: {
+      name: contractor.name,
+      history: historyLine,
+    },
+    timeline,
+  };
+}
 
 /**
  * Deterministic djb2-style hash → integer.
@@ -49,6 +317,7 @@ export interface FindContractorsInput {
   jobId: string;
   trade: Trade;
   city: string;
+  mossHits?: { contractorId: string; score: number }[];
 }
 
 export interface FindContractorsResult {
@@ -58,8 +327,26 @@ export interface FindContractorsResult {
 export async function findContractorsForJob(
   input: FindContractorsInput,
 ): Promise<FindContractorsResult> {
-  const { jobId, trade, city } = input;
+  const { jobId, trade, city, mossHits } = input;
 
+  // Moss-first path: if we already have ≥3 ranked hits, use them directly.
+  if (mossHits && mossHits.length >= 3) {
+    const sorted = [...mossHits].sort((a, b) => b.score - a.score).slice(0, 5);
+    const contractorIds = sorted
+      .map((h) => h.contractorId)
+      .filter((id) => store.contractors.has(id));
+
+    store.appendEvent({
+      jobId,
+      kind: "contractor_search_completed",
+      title: `Found ${contractorIds.length} candidates from Moss`,
+      data: { contractorIds, source: "moss" },
+    });
+
+    return { contractorIds };
+  }
+
+  // Fallback: Browser Use sourcing (existing behavior, unchanged).
   const { candidates } = await browseruse.findContractors({
     trade,
     city,
@@ -98,7 +385,7 @@ export async function findContractorsForJob(
     jobId,
     kind: "contractor_search_completed",
     title: `Found ${contractorIds.length} candidates`,
-    data: { contractorIds },
+    data: { contractorIds, source: "browser_use" },
   });
 
   return { contractorIds };
@@ -111,6 +398,10 @@ export async function findContractorsForJob(
 export interface DialContractorInput {
   jobId: string;
   contractorId: string;
+  /** Optional dispatch brief — anchors, target/walk-away, history — passed
+   * verbatim to the contractor-dispatch agent. When omitted, the agent
+   * negotiates blind from the system prompt + script alone. */
+  negotiationContext?: NegotiationContext;
 }
 
 export interface DialContractorResult {
@@ -144,13 +435,20 @@ export async function dialContractorForJob(
     toNumber: contractor.phone,
     script,
     metadata: { jobId, contractorId },
+    negotiationContext: input.negotiationContext,
   });
 
   store.appendEvent({
     jobId,
     kind: "contractor_dial_started",
     title: `Dialing ${contractor.name}`,
-    data: { contractorId, contractorCallId },
+    detail: input.negotiationContext
+      ? `target $${(input.negotiationContext.pricing.targetCents / 100).toFixed(0)} · walk-away $${(input.negotiationContext.pricing.walkAwayCents / 100).toFixed(0)}` +
+        (input.negotiationContext.pricing.competitorAnchors?.length
+          ? ` · anchors: ${input.negotiationContext.pricing.competitorAnchors.map((a) => `${a.contractorName} $${(a.amountCents / 100).toFixed(0)}`).join(", ")}`
+          : "")
+      : undefined,
+    data: { contractorId, contractorCallId, negotiation: input.negotiationContext },
   });
 
   const outcome = simulateDialOutcome(contractorId);
@@ -209,8 +507,30 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
   }
   const transcriptText = transcriptLines.map((l) => `${l.speaker}: ${l.text}`).join("\n");
 
-  // 2. Classify intent with Gemini.
-  const intent = await gemini.classifyIntent({ transcript: transcriptText });
+  // 2. Classify intent with Gemini. Enrich transcript with any visual context
+  //    captured from an MMS photo the tenant sent alongside the call.
+  const existingJob = call.jobId ? store.getJob(call.jobId) : undefined;
+  let transcriptWithVisual = transcriptText;
+  if (existingJob?.visualContext) {
+    transcriptWithVisual = [
+      `[VISUAL TRIAGE: ${existingJob.visualContext.description}]`,
+      `[SEVERITY FROM PHOTO: ${existingJob.visualContext.severity}]`,
+      existingJob.visualContext.guidelines.length > 0
+        ? `[GUIDELINES: ${existingJob.visualContext.guidelines.map((g) => g.text).join(" | ")}]`
+        : "",
+      "",
+      transcriptText,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  const intent = await gemini.classifyIntent({ transcript: transcriptWithVisual });
+
+  // If the photo analysis flagged an emergency, let that take precedence over
+  // whatever the transcript-only classification produced.
+  const resolvedUrgency =
+    existingJob?.visualContext?.severity === "emergency" ? "emergency" : intent.urgency;
 
   // 3. Resolve property/reporter from the call.
   const property = call.propertyId ? store.properties.get(call.propertyId) : undefined;
@@ -227,7 +547,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     propertyId,
     reportedByPersonId: reporterId,
     status: "sourcing_contractor",
-    urgency: intent.urgency,
+    urgency: resolvedUrgency,
     trade: intent.trade,
     title: intent.title,
     description: intent.description,
@@ -238,14 +558,22 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
   store.appendEvent({
     jobId: job.id,
     kind: "intent_classified",
-    title: `Classified as ${intent.trade} · ${intent.urgency}`,
+    title: `Classified as ${intent.trade} · ${resolvedUrgency}`,
     detail: intent.description,
     data: { intent: intent.intent, confidence: intent.confidence },
   });
 
-  // 5. Recall past tenant satisfaction memories for this property/trade.
-  //    Contractors rated ≤ 2/5 are excluded from the dial list.
-  //    Events are logged only for contractors actually in the candidate pool (step 6).
+  // 5. Recall context — Moss (catalog + knowledge) + Supermemory (history) in parallel.
+  const ctx = await buildRecallContext({
+    trade: intent.trade,
+    city,
+    problem: intent.description,
+    address: property?.address,
+  });
+
+  // 5b. Recall past tenant satisfaction scores to exclude low-rated contractors.
+  //     Separate from buildRecallContext so the exclusion signal is always scoped
+  //     to survey_response memories with typed metadata.score.
   const negativeContractorIds = new Set<string>();
   const negativeScores = new Map<string, number>();
   try {
@@ -265,7 +593,27 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     // Recall failures are non-fatal — proceed without memory filter.
   }
 
-  // 6. Find contractors (in-process call — no localhost fetch).
+  store.appendEvent({
+    jobId: job.id,
+    kind: "context_recalled",
+    title: `Recalled ${ctx.pastJobs.length} prior jobs · ${ctx.contractorHits.length} contractor matches · ${ctx.ownerPreferences.length} owner prefs`,
+    detail:
+      [
+        ctx.knowledgeHits[0]?.text,
+        ctx.pastJobs[0]?.text,
+        ctx.ownerPreferences[0]?.text,
+      ]
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" · ") || undefined,
+    data: {
+      pastJobIds: ctx.pastJobs.map((j) => j.id),
+      contractorIds: ctx.contractorHits.map((c) => c.contractorId),
+      knowledgeIds: ctx.knowledgeHits.map((k) => k.id),
+    },
+  });
+
+  // 6. Find contractors — Moss-first; falls back to Browser Use if <3 hits.
   store.appendEvent({
     jobId: job.id,
     kind: "contractor_search_started",
@@ -275,6 +623,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     jobId: job.id,
     trade: intent.trade,
     city,
+    mossHits: ctx.contractorHits,
   });
 
   // Log skipped events only for contractors actually in the candidate pool.
@@ -299,14 +648,27 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     .filter((id) => !negativeContractorIds.has(id))
     .slice(0, 3);
   type Winner = { contractorId: string; result: DialContractorResult };
-  const dialPromises = top.map((contractorId) =>
-    dialContractorForJob({ jobId: job.id, contractorId }).then((result) => {
-      if (result.outcome !== "accepted_job") {
-        throw new Error("not_accepted"); // makes Promise.any skip
-      }
-      return { contractorId, result } satisfies Winner;
-    }),
-  );
+  const dialPromises = top.map((contractorId) => {
+    const contractor = store.contractors.get(contractorId);
+    const negotiationContext = contractor
+      ? buildNegotiationContext({
+          job,
+          contractor,
+          property: property
+            ? { address: property.address, unit: property.unit }
+            : undefined,
+          recall: ctx,
+        })
+      : undefined;
+    return dialContractorForJob({ jobId: job.id, contractorId, negotiationContext }).then(
+      (result) => {
+        if (result.outcome !== "accepted_job") {
+          throw new Error("not_accepted"); // makes Promise.any skip
+        }
+        return { contractorId, result } satisfies Winner;
+      },
+    );
+  });
 
   let winner: Winner | null = null;
   try {
@@ -333,19 +695,26 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
       data: { contractorId: assignedContractorId, etaWindow: winner.result.etaWindow },
     });
 
-    // 10. Remember in Supermemory.
+    // 10. Remember in Supermemory — richer text/tags improves future recall.
     try {
+      const etaSuffix = winner.result.etaWindow ? `, eta ${winner.result.etaWindow}` : "";
       await supermemory.remember({
-        text: `Job ${job.id} assigned to ${contractor?.name ?? assignedContractorId} for ${property?.address ?? propertyId}`,
-        tags: ["job", intent.trade],
+        text:
+          `Job ${job.id} at ${property?.address ?? propertyId} — ` +
+          `${intent.trade} (${intent.urgency}) assigned to ${contractor?.name ?? assignedContractorId}` +
+          etaSuffix +
+          ".",
+        tags: ["job", intent.trade, "assignment"],
         metadata: {
           jobId: job.id,
           contractorId: assignedContractorId,
           propertyId,
+          urgency: intent.urgency,
+          outcome: "accepted_job",
         },
       });
-    } catch {
-      // Remember failures are non-fatal.
+    } catch (e) {
+      console.warn("[orchestrator] supermemory.remember failed:", e);
     }
   }
 

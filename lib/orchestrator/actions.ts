@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { agentmail } from "@/lib/integrations/agentmail";
 import { agentphone } from "@/lib/integrations/agentphone";
 import { supermemory } from "@/lib/integrations/supermemory";
@@ -51,64 +52,39 @@ export async function markJobComplete(
   return { job: updated };
 }
 
-// --- Create invoice ---
+// --- Record invoice amount and move job to awaiting_payment ---
 export interface CreateInvoiceInput {
   jobId: string;
   amountCents: number;
 }
 export interface CreateInvoiceResult {
-  invoiceId: string;
-  payUrl: string;
+  amountCents: number;
 }
 export async function createInvoiceForJob(
   input: CreateInvoiceInput,
 ): Promise<CreateInvoiceResult> {
   const job = getJobOrThrow(input.jobId);
-  if (!job.assignedContractorId) {
-    throw new ActionError("no_contractor", "job has no assigned contractor", 400);
-  }
-  const contractor = store.contractors.get(job.assignedContractorId);
-  if (!contractor) throw new ActionError("contractor_not_found", "contractor not found", 404);
 
   const property = store.properties.get(job.propertyId);
   const owner = property ? store.people.get(property.ownerId) : undefined;
-  if (!owner?.email) {
-    // Fail loud instead of silently emailing a hardcoded address — critical
-    // once any vendor flips to live mode.
-    throw new ActionError(
-      "no_payer_email",
-      `Owner ${property?.ownerId ?? "(missing)"} has no email on file; cannot send invoice.`,
-      400,
-    );
-  }
-  const payerEmail = owner.email;
-
-  const invoice = await sponge.createInvoice({
-    contractorId: contractor.id,
-    contractorEmail: contractor.email,
-    payerEmail,
-    amountCents: input.amountCents,
-    memo: `Invoice for ${job.title}`,
-  });
+  const ownerEmail = owner?.email;
 
   store.appendEvent({
     jobId: job.id,
     kind: "invoice_sent",
-    title: `Invoice sent — $${(input.amountCents / 100).toFixed(2)}`,
-    detail: `Pay link generated (Sponge invoice ${invoice.invoiceId})`,
-    data: {
-      payUrl: invoice.payUrl,
-      invoiceId: invoice.invoiceId,
-      amountCents: input.amountCents,
-    },
+    title: `Invoice recorded — $${(input.amountCents / 100).toFixed(2)}`,
+    detail: "Awaiting contractor payment via Sponge",
+    data: { amountCents: input.amountCents },
   });
 
-  await agentmail.sendEmail({
-    to: payerEmail,
-    subject: `Invoice for ${job.title}`,
-    text: `Your invoice for ${job.title} is ready. Pay here: ${invoice.payUrl}`,
-    tags: ["invoice", job.id],
-  });
+  if (ownerEmail) {
+    await agentmail.sendEmail({
+      to: ownerEmail,
+      subject: `Invoice for ${job.title}`,
+      text: `Invoice for ${job.title}: $${(input.amountCents / 100).toFixed(2)}. Payment will be processed once the contractor is confirmed.`,
+      tags: ["invoice", job.id],
+    });
+  }
 
   store.upsertJob({
     id: job.id,
@@ -116,7 +92,53 @@ export async function createInvoiceForJob(
     totalCostCents: input.amountCents,
   });
 
-  return { invoiceId: invoice.invoiceId, payUrl: invoice.payUrl };
+  return { amountCents: input.amountCents };
+}
+
+// --- Pay contractor via Sponge ---
+export interface PayContractorInput {
+  jobId: string;
+}
+export interface PayContractorResult {
+  txnHash: string;
+}
+export async function payContractor(
+  input: PayContractorInput,
+): Promise<PayContractorResult> {
+  const job = getJobOrThrow(input.jobId);
+  if (!job.assignedContractorId) {
+    throw new ActionError("no_contractor", "job has no assigned contractor", 400);
+  }
+  if (!job.totalCostCents) {
+    throw new ActionError("no_amount", "job has no invoice amount — send invoice first", 400);
+  }
+  const contractor = store.contractors.get(job.assignedContractorId);
+  if (!contractor) throw new ActionError("contractor_not_found", "contractor not found", 404);
+  if (!contractor.walletAddress) {
+    throw new ActionError(
+      "no_wallet",
+      `Contractor ${contractor.name} has no wallet address on file`,
+      400,
+    );
+  }
+
+  const amountUsdc = job.totalCostCents / 100;
+  const { txnHash } = await sponge.payContractor({
+    toAddress: contractor.walletAddress,
+    amountUsdc,
+    memo: `Handle payment for job ${job.id}: ${job.title}`,
+  });
+
+  store.upsertJob({ id: job.id, status: "paid", paymentTxnHash: txnHash });
+  store.appendEvent({
+    jobId: job.id,
+    kind: "paid",
+    title: `Paid $${amountUsdc.toFixed(2)} via Sponge`,
+    detail: `Txn: ${txnHash}`,
+    data: { txnHash, amountUsdc },
+  });
+
+  return { txnHash };
 }
 
 // --- Send a survey request (email the tenant a link, do NOT record a score) ---
@@ -211,4 +233,20 @@ export async function recordSurveyResponse(
   }
 
   return { job: updated };
+}
+
+// --- Add a PM note to the job timeline ---
+export interface AddNoteToJobInput {
+  jobId: string;
+  note: string;
+}
+export async function addNoteToJob(input: AddNoteToJobInput): Promise<void> {
+  getJobOrThrow(input.jobId);
+  store.appendEvent({
+    jobId: input.jobId,
+    kind: "note",
+    title: "Note",
+    detail: input.note,
+  });
+  revalidatePath(`/dashboard/jobs/${input.jobId}`);
 }

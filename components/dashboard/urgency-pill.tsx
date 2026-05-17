@@ -1,71 +1,55 @@
 import { cn } from "@/lib/utils";
-import type { JobUrgency } from "@/lib/types";
+import type { Job } from "@/lib/types";
 
-/**
- * Monochrome urgency. Status conveyed through fill weight, ring, and dash
- * pattern — never hue. Reads at a glance from across the room.
- */
-const labels: Record<JobUrgency, string> = {
-  emergency: "Emergency",
-  urgent: "Urgent",
-  standard: "Standard",
-  scheduled: "Scheduled",
+const CONFIG: Record<
+  Job["urgency"],
+  { bg: string; text: string; dot: string; label: string }
+> = {
+  emergency: {
+    bg: "bg-red-50 border border-red-200",
+    text: "text-red-700",
+    dot: "bg-red-500",
+    label: "Emergency",
+  },
+  urgent: {
+    bg: "bg-amber-50 border border-amber-200",
+    text: "text-amber-700",
+    dot: "bg-amber-500",
+    label: "Urgent",
+  },
+  standard: {
+    bg: "bg-[#EEF4F9] border border-[#C7D9E8]",
+    text: "text-[#3B5A78]",
+    dot: "bg-[#3B5A78]",
+    label: "Standard",
+  },
+  scheduled: {
+    bg: "border border-dashed border-[#E8E3DA]",
+    text: "text-[#9AA0A0]",
+    dot: "border border-[#9AA0A0]",
+    label: "Scheduled",
+  },
 };
 
 export function UrgencyPill({
   urgency,
   className,
 }: {
-  urgency: JobUrgency;
+  urgency: Job["urgency"];
   className?: string;
 }) {
-  const base =
-    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium tracking-tight whitespace-nowrap";
-
-  if (urgency === "emergency") {
-    return (
-      <span className={cn(base, "bg-black text-white", className)}>
-        <span className="size-1.5 rounded-full bg-white" />
-        {labels[urgency]}
-      </span>
-    );
-  }
-  if (urgency === "urgent") {
-    return (
-      <span
-        className={cn(
-          base,
-          "bg-zinc-900 text-white ring-1 ring-zinc-700 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950",
-          className,
-        )}
-      >
-        {labels[urgency]}
-      </span>
-    );
-  }
-  if (urgency === "standard") {
-    return (
-      <span
-        className={cn(
-          base,
-          "border border-zinc-200 bg-zinc-100 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100",
-          className,
-        )}
-      >
-        {labels[urgency]}
-      </span>
-    );
-  }
-  // scheduled
+  const { bg, text, dot, label } = CONFIG[urgency];
   return (
     <span
       className={cn(
-        base,
-        "border border-dashed border-zinc-300 bg-transparent text-zinc-500 dark:border-zinc-700 dark:text-zinc-400",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+        bg,
+        text,
         className,
       )}
     >
-      {labels[urgency]}
+      <span className={cn("size-1.5 rounded-full", dot)} />
+      {label}
     </span>
   );
 }

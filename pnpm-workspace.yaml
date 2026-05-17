@@ -1,3 +1,11 @@
-ignoredBuiltDependencies:
+allowBuilds:
+  esbuild: set this to true or false
+  msw: set this to true or false
+  onnxruntime-node: set this to true or false
+  protobufjs: set this to true or false
+  sharp: set this to true or false
+  unrs-resolver: set this to true or false
+onlyBuiltDependencies:
+  - msw
   - sharp
   - unrs-resolver

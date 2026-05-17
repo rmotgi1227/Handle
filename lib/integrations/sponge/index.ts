@@ -2,18 +2,27 @@ import { pickImpl, type AdapterModule } from "@/lib/integrations/adapter";
 import * as mock from "./mock";
 import * as live from "./live";
 
+export interface SpongeBalance {
+  address: string;
+  usdc: number;
+}
+
+export interface SpongePayResult {
+  txnHash: string;
+}
+
+export interface SpongeTxStatus {
+  status: "confirmed" | "pending" | "failed";
+}
+
 export interface SpongeClient {
-  createInvoice(input: {
-    contractorId: string;
-    contractorEmail?: string;
-    payerEmail: string;
-    amountCents: number;
-    memo: string;
-  }): Promise<{ invoiceId: string; payUrl: string }>;
-  getInvoice(invoiceId: string): Promise<{
-    status: "draft" | "sent" | "paid" | "failed";
-    paidAt?: string;
-  }>;
+  checkBalance(): Promise<SpongeBalance>;
+  payContractor(input: {
+    toAddress: string;
+    amountUsdc: number;
+    memo?: string;
+  }): Promise<SpongePayResult>;
+  getTransactionStatus(txnHash: string): Promise<SpongeTxStatus>;
 }
 
 export const sponge: SpongeClient = pickImpl<SpongeClient>("sponge", {

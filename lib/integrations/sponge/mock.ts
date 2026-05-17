@@ -1,47 +1,24 @@
 import type { SpongeClient } from "./index";
 
-/**
- * Deterministic Sponge mock.
- * - createInvoice returns a stable invoiceId derived from input.
- * - getInvoice returns `sent` on first lookup, `paid` on the second+ lookup
- *   (per the v1 plan — invoice transitions to paid on second poll).
- */
+const DEMO_ADDRESS = "AzSqf7aAND7iwjFyPqakki7XQ5ogMwSxqhp3cmGCvvcU";
 
-function invoiceIdFor(input: {
-  contractorId: string;
-  payerEmail: string;
-  amountCents: number;
-  memo: string;
-}): string {
-  const seed = `${input.contractorId}|${input.payerEmail}|${input.amountCents}|${input.memo}`;
+function fakeTxHash(toAddress: string, amountUsdc: number): string {
   let h = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    h = (h * 33 + seed.charCodeAt(i)) | 0;
-  }
-  return `inv_${(h >>> 0).toString(36)}`;
+  const seed = `${toAddress}|${amountUsdc}|${Date.now()}`;
+  for (let i = 0; i < seed.length; i++) h = (h * 33 + seed.charCodeAt(i)) | 0;
+  return `mock_tx_${(h >>> 0).toString(36)}`;
 }
 
-const lookups = new Map<string, number>();
-// Deterministic paid-at timestamp so demos and tests are reproducible.
-const PAID_AT = "2026-05-17T09:30:00.000Z";
-
 export const sponge: SpongeClient = {
-  async createInvoice(input) {
-    const invoiceId = invoiceIdFor(input);
-    lookups.set(invoiceId, 0);
-    return {
-      invoiceId,
-      payUrl: `https://demo.sponge.test/pay/${invoiceId}`,
-    };
+  async checkBalance() {
+    return { address: DEMO_ADDRESS, usdc: 5.0 };
   },
 
-  async getInvoice(invoiceId) {
-    const prev = lookups.get(invoiceId) ?? 0;
-    const next = prev + 1;
-    lookups.set(invoiceId, next);
-    if (next >= 2) {
-      return { status: "paid", paidAt: PAID_AT };
-    }
-    return { status: "sent" };
+  async payContractor({ toAddress, amountUsdc }) {
+    return { txnHash: fakeTxHash(toAddress, amountUsdc) };
+  },
+
+  async getTransactionStatus(_txnHash) {
+    return { status: "confirmed" };
   },
 };

@@ -2,6 +2,7 @@ export type JobEventKind =
   | "call_received"
   | "intent_classified"
   | "diagnosed"
+  | "context_recalled"
   | "contractor_search_started"
   | "contractor_search_completed"
   | "contractor_dial_started"
@@ -16,7 +17,8 @@ export type JobEventKind =
   | "contractor_skipped"
   | "invoice_sent"
   | "paid"
-  | "note";
+  | "note"
+  | "visual_triage";
 
 export interface JobEvent {
   id: string;
