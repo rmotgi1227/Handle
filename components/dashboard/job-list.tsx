@@ -47,11 +47,13 @@ export function JobList({
   contractors,
   properties,
   filterStatuses,
+  variant = "card",
 }: {
   initialJobs: Job[];
   contractors: Contractor[];
   properties: Property[];
   filterStatuses?: Job["status"][];
+  variant?: "card" | "row";
 }) {
   const jobsRes = usePollingFetch<JobsResponse>("/api/jobs", 5000);
 
@@ -70,6 +72,13 @@ export function JobList({
   });
 
   if (sorted.length === 0) {
+    if (variant === "row") {
+      return (
+        <div className="px-5 py-10 text-center text-sm font-medium text-[#9AA0A0]">
+          No jobs here. New tenant calls will appear within seconds.
+        </div>
+      );
+    }
     return (
       <div className="rounded-2xl border border-dashed border-[#E8E3DA] p-10 text-center text-sm font-medium text-[#9AA0A0]">
         No jobs here. New tenant calls will appear within seconds.
@@ -77,8 +86,16 @@ export function JobList({
     );
   }
 
+  const isRow = variant === "row";
+  const wrapperClass = isRow
+    ? "flex flex-col divide-y divide-[#E8E3DA]"
+    : "flex flex-col gap-3";
+  const itemClass = isRow
+    ? "group flex items-start gap-4 px-5 py-4 transition-colors hover:bg-[#FAF8F3]"
+    : "group flex items-start gap-4 rounded-2xl border border-[#E8E3DA] bg-white p-5 transition-all hover:-translate-y-px hover:border-[#D5CFC6]";
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className={wrapperClass}>
       {sorted.map((job) => {
         const Icon = tradeIcon[job.trade] ?? Hammer;
         const contractor = job.assignedContractorId
@@ -93,8 +110,8 @@ export function JobList({
           <Link
             key={job.id}
             href={`/dashboard/jobs/${job.id}`}
-            className="group flex items-start gap-4 rounded-2xl border border-[#E8E3DA] bg-white p-5 transition-all hover:-translate-y-px hover:border-[#D5CFC6]"
-            style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+            className={itemClass}
+            style={isRow ? undefined : { boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
           >
             <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E3DA] bg-[#F6F4EF]">
               <Icon className="size-4 text-[#3B5A78]" />

@@ -30,6 +30,7 @@ export function seedOnce(): void {
     name: "Marcus Chen",
     phone: "+14155551410",
     propertyId: "prop_1",
+    unitId: "unit_p1_3b",
   });
   store.upsertPerson({
     id: "person_tenant_2",
@@ -37,16 +38,77 @@ export function seedOnce(): void {
     name: "Jamie Patel",
     phone: "+14155551411",
     propertyId: "prop_2",
+    unitId: "unit_p2_ph",
+  });
+  store.upsertPerson({
+    id: "person_tenant_3",
+    role: "tenant",
+    name: "Dani Okafor",
+    phone: "+14155551420",
+    propertyId: "prop_1",
+    unitId: "unit_p1_2a",
+  });
+  store.upsertPerson({
+    id: "person_tenant_4",
+    role: "tenant",
+    name: "Sasha Lin",
+    phone: "+14155551421",
+    propertyId: "prop_1",
+    unitId: "unit_p1_1a",
+  });
+  store.upsertPerson({
+    id: "person_tenant_5",
+    role: "tenant",
+    name: "Wes Holloway",
+    phone: "+14155551422",
+    propertyId: "prop_1",
+    unitId: "unit_p1_4a",
+  });
+  store.upsertPerson({
+    id: "person_tenant_6",
+    role: "tenant",
+    name: "Noor Rahimi",
+    phone: "+14155551430",
+    propertyId: "prop_2",
+    unitId: "unit_p2_2",
+  });
+  store.upsertPerson({
+    id: "person_tenant_7",
+    role: "tenant",
+    name: "Theo Park",
+    phone: "+14155551431",
+    propertyId: "prop_2",
+    unitId: "unit_p2_3",
   });
 
-  // Properties
+  // Buildings (Property) — building-wide info the agent reads back during triage.
   store.upsertProperty({
     id: "prop_1",
     address: "342 Valencia St",
-    unit: "3B",
+    unit: "3B", // legacy "primary unit" — single-line displays still use this
     managerId: "person_pm_1",
     ownerId: "person_owner_1",
-    tenantIds: ["person_tenant_1"],
+    tenantIds: [
+      "person_tenant_1",
+      "person_tenant_3",
+      "person_tenant_4",
+      "person_tenant_5",
+    ],
+    propertyType: "apartment_building",
+    yearBuilt: 1924,
+    gateCode: "4421#",
+    lockboxCode: "0316",
+    parkingNotes: "Street parking only — no driveway. Loading zone on 19th OK for ≤30 min.",
+    accessNotes: "Main entry on Valencia. Buzzer code list mounted left of door. Service entrance on Rondel Pl.",
+    waterShutoffLocation: "Basement mechanical room — main shutoff is the large red-handled valve.",
+    electricalPanelLocation: "Basement, breaker room. Sub-panels in each unit's hall closet.",
+    hvacType: "Radiator heat (landlord-controlled boiler). Window AC units owned by tenants.",
+    ownerInstructions:
+      "Owner prefers Bay Area Plumbing Co. for any plumbing work — they know the building's old galvanized lines. Any spend over the cap needs Priya's text approval.",
+    spendCapCents: 50000,
+    emergencyContactName: "Priya Kapoor (owner)",
+    emergencyContactPhone: "+14155551301",
+    notes: "Built 1924 — galvanized water lines, expect recurring drain-trap issues. Roof was redone 2022 (Bay Roofers warranty active).",
   });
   store.upsertProperty({
     id: "prop_2",
@@ -54,7 +116,147 @@ export function seedOnce(): void {
     unit: "PH",
     managerId: "person_pm_1",
     ownerId: "person_owner_1",
+    tenantIds: ["person_tenant_2", "person_tenant_6", "person_tenant_7"],
+    propertyType: "condo_building",
+    yearBuilt: 2008,
+    gateCode: "5566",
+    lockboxCode: "9921",
+    parkingNotes: "Loading zone on Folsom good for ≤30 min. Contractor parking validates at front desk.",
+    accessNotes: "Concierge 8a–8p. Outside those hours use the service-elevator lockbox; tell contractors to ring 'Service' on the call box.",
+    waterShutoffLocation: "Per-unit shutoffs in mechanical closet inside each unit (off the kitchen).",
+    electricalPanelLocation: "Per-unit panel in laundry. Building main in basement (concierge has key).",
+    hvacType: "Central forced-air w/ Nest in each unit. Building chiller — HVAC vendor must coordinate w/ HOA on rooftop work.",
+    ownerInstructions: "HOA requires COI on file BEFORE any contractor arrives. Owner prefers Mission Electric for electrical.",
+    spendCapCents: 100000,
+    emergencyContactName: "Priya Kapoor (owner)",
+    emergencyContactPhone: "+14155551301",
+    notes: "HOA fines $250 for any work before 9a or after 6p (incl. Saturdays). No work Sundays.",
+  });
+
+  // Units inside each building.
+  store.upsertUnit({
+    id: "unit_p1_1a",
+    propertyId: "prop_1",
+    label: "1A",
+    floor: 1,
+    bedrooms: 1,
+    bathrooms: 1,
+    sqft: 650,
+    lockboxCode: "1010",
+    tenantIds: ["person_tenant_4"],
+    notes: "Garden-level — recurring moisture issues near baseboards along Rondel side.",
+  });
+  store.upsertUnit({
+    id: "unit_p1_2a",
+    propertyId: "prop_1",
+    label: "2A",
+    floor: 2,
+    bedrooms: 2,
+    bathrooms: 1,
+    sqft: 880,
+    lockboxCode: "2020",
+    tenantIds: ["person_tenant_3"],
+    notes: "Hardwood floors refinished 2024.",
+  });
+  store.upsertUnit({
+    id: "unit_p1_2b",
+    propertyId: "prop_1",
+    label: "2B",
+    floor: 2,
+    bedrooms: 2,
+    bathrooms: 1,
+    sqft: 880,
+    tenantIds: [],
+    vacant: true,
+    notes: "Turning over — kitchen reno scheduled June.",
+  });
+  store.upsertUnit({
+    id: "unit_p1_3a",
+    propertyId: "prop_1",
+    label: "3A",
+    floor: 3,
+    bedrooms: 1,
+    bathrooms: 1,
+    sqft: 720,
+    lockboxCode: "3030",
+    tenantIds: [],
+    vacant: true,
+    notes: "On the market — showings via owner only.",
+  });
+  store.upsertUnit({
+    id: "unit_p1_3b",
+    propertyId: "prop_1",
+    label: "3B",
+    floor: 3,
+    bedrooms: 2,
+    bathrooms: 1,
+    sqft: 920,
+    lockboxCode: "0316",
+    tenantIds: ["person_tenant_1"],
+    notes: "Friendly Maine Coon — let contractors know. Drain-trap leak under kitchen sink (3x in 18 months).",
+  });
+  store.upsertUnit({
+    id: "unit_p1_4a",
+    propertyId: "prop_1",
+    label: "4A (top)",
+    floor: 4,
+    bedrooms: 2,
+    bathrooms: 2,
+    sqft: 1020,
+    lockboxCode: "4040",
+    tenantIds: ["person_tenant_5"],
+    notes: "Top-floor unit — skylight in primary bath. Roof access via hall hatch (key with concierge equiv).",
+  });
+
+  store.upsertUnit({
+    id: "unit_p2_1",
+    propertyId: "prop_2",
+    label: "101",
+    floor: 1,
+    bedrooms: 2,
+    bathrooms: 2,
+    sqft: 1200,
+    tenantIds: [],
+    vacant: true,
+    notes: "Lobby-level — high foot-traffic noise complaints.",
+  });
+  store.upsertUnit({
+    id: "unit_p2_2",
+    propertyId: "prop_2",
+    label: "204",
+    floor: 2,
+    bedrooms: 2,
+    bathrooms: 2,
+    sqft: 1280,
+    lockboxCode: "2204",
+    tenantIds: ["person_tenant_6"],
+    notes: "Per-unit Nest replaced 2025-02.",
+  });
+  store.upsertUnit({
+    id: "unit_p2_3",
+    propertyId: "prop_2",
+    label: "312",
+    floor: 3,
+    bedrooms: 3,
+    bathrooms: 2,
+    sqft: 1480,
+    lockboxCode: "3312",
+    tenantIds: ["person_tenant_7"],
+    notes: "Bosch dishwasher under extended warranty until 2027.",
+    spendCapCents: 75000,
+  });
+  store.upsertUnit({
+    id: "unit_p2_ph",
+    propertyId: "prop_2",
+    label: "PH (Penthouse)",
+    floor: 4,
+    bedrooms: 3,
+    bathrooms: 2,
+    sqft: 1620,
+    lockboxCode: "9921",
     tenantIds: ["person_tenant_2"],
+    spendCapCents: 150000,
+    notes: "Rooftop deck access via spiral stairs in primary suite. Hot-tub serviced quarterly by SF Spa.",
   });
 
   // Contractor pool
