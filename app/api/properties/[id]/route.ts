@@ -1,3 +1,4 @@
+import "@/lib/store/bootstrap";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { store } from "@/lib/store/memory";

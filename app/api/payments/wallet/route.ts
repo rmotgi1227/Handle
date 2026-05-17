@@ -1,3 +1,4 @@
+import "@/lib/store/bootstrap";
 import { sponge } from "@/lib/integrations/sponge";
 
 export async function GET(): Promise<Response> {

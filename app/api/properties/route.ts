@@ -1,3 +1,4 @@
+import "@/lib/store/bootstrap";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
