@@ -2,7 +2,7 @@ import "@/lib/store/bootstrap";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { store } from "@/lib/store/memory";
-import { getPropertyContext } from "@/lib/orchestrator/property-context";
+import { getPropertyContext } from "@/lib/store/property-context";
 
 const PatchSchema = z.object({
   address: z.string().min(1).optional(),

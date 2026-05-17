@@ -2,7 +2,7 @@ import "@/lib/store/bootstrap";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getPropertyContext } from "@/lib/orchestrator/property-context";
+import { getPropertyContext } from "@/lib/store/property-context";
 import { PropertyDetailClient } from "@/components/dashboard/property-detail-client";
 
 export default async function PropertyDetailPage({
