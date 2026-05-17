@@ -2,6 +2,7 @@ export type JobEventKind =
   | "call_received"
   | "intent_classified"
   | "diagnosed"
+  | "context_recalled"
   | "contractor_search_started"
   | "contractor_search_completed"
   | "contractor_dial_started"

@@ -16,6 +16,11 @@ const EnvSchema = z.object({
   SUPERMEMORY_API_KEY: z.string().optional(),
   SUPERMEMORY_PROJECT_ID: z.string().optional(),
 
+  MOSS_PROJECT_ID: z.string().optional(),
+  MOSS_PROJECT_KEY: z.string().optional(),
+  MOSS_CONTRACTORS_INDEX: z.string().default("cma_contractors_v1"),
+  MOSS_KNOWLEDGE_INDEX: z.string().default("cma_knowledge_v1"),
+
   BROWSERUSE_API_KEY: z.string().optional(),
   BROWSERUSE_BASE_URL: z.string().optional(),
 
