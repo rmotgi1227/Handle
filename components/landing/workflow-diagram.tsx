@@ -731,6 +731,7 @@ function NodeChip({
   isFocused,
   isNeighbor,
   isInTrace,
+  isReached: _isReached,
   isDimmed,
   onHover,
   onActivate,
@@ -741,6 +742,7 @@ function NodeChip({
   isFocused: boolean;
   isNeighbor: boolean;
   isInTrace: boolean;
+  isReached?: boolean;
   isDimmed: boolean;
   onHover: (k: StageKey | null) => void;
   onActivate: (k: StageKey) => void;
