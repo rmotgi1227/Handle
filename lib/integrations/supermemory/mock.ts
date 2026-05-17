@@ -47,6 +47,7 @@ export const supermemory: SupermemoryClient = {
         id: row.id,
         text: row.text,
         score,
+        metadata: row.metadata,
       })),
     };
   },

@@ -115,10 +115,12 @@ describe("supermemory mock", () => {
         id: expect.any(String),
         text: expect.any(String),
         score: expect.any(Number),
+        metadata: expect.any(Object),
       });
     }
   });
 });
+
 
 describe("browseruse mock", () => {
   it("findContractors returns candidates with required shape", async () => {

@@ -20,6 +20,11 @@ export interface AgentPhoneClient {
     script: string;
     metadata?: Record<string, string>;
   }): Promise<{ callId: string }>;
+  /** Send an SMS to a tenant (used for survey links). */
+  sendSms(input: {
+    to: string;
+    body: string;
+  }): Promise<{ messageId: string }>;
 }
 
 export const agentphone: AgentPhoneClient = pickImpl<AgentPhoneClient>("agentphone", {

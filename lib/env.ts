@@ -23,6 +23,8 @@ const EnvSchema = z.object({
 
   AGENTMAIL_API_KEY: z.string().optional(),
   AGENTMAIL_INBOX: z.string().optional(),
+
+  NEXT_PUBLIC_APP_URL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

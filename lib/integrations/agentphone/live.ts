@@ -42,4 +42,7 @@ export const agentphone: AgentPhoneClient = {
   async placeOutboundCall(_input) {
     notWired("placeOutboundCall");
   },
+  async sendSms(_input) {
+    notWired("sendSms");
+  },
 };

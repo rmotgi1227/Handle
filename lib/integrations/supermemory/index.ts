@@ -4,7 +4,7 @@ import * as live from "./live";
 
 export interface SupermemoryClient {
   recall(input: { query: string; topK?: number }): Promise<{
-    memories: { id: string; text: string; score: number }[];
+    memories: { id: string; text: string; score: number; metadata: Record<string, unknown> }[];
   }>;
   remember(input: {
     text: string;

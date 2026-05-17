@@ -11,7 +11,9 @@ export type JobEventKind =
   | "work_started"
   | "work_completed"
   | "survey_sent"
+  | "survey_skipped"
   | "survey_completed"
+  | "contractor_skipped"
   | "invoice_sent"
   | "paid"
   | "note";

@@ -15,6 +15,8 @@ import {
   Receipt,
   DollarSign,
   StickyNote,
+  XCircle,
+  BellOff,
 } from "lucide-react";
 import type { JobEvent, JobEventKind } from "@/lib/types";
 
@@ -31,7 +33,9 @@ const iconFor: Record<JobEventKind, typeof Phone> = {
   work_started: PlayCircle,
   work_completed: CheckCircle2,
   survey_sent: MailQuestion,
+  survey_skipped: BellOff,
   survey_completed: Star,
+  contractor_skipped: XCircle,
   invoice_sent: Receipt,
   paid: DollarSign,
   note: StickyNote,
