@@ -20,6 +20,7 @@ export interface Contractor {
   city?: string;
   source: "directory" | "browser_use" | "manual";
   notes?: string;
+  walletAddress?: string;
 }
 
 export type ContractorCallOutcome =

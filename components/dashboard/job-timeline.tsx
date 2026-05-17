@@ -3,6 +3,7 @@ import {
   Brain,
   Stethoscope,
   Search,
+  BookOpen,
   ListChecks,
   PhoneOutgoing,
   PhoneCall,
@@ -23,6 +24,7 @@ const iconFor: Record<JobEventKind, typeof Phone> = {
   call_received: Phone,
   intent_classified: Brain,
   diagnosed: Stethoscope,
+  context_recalled: BookOpen,
   contractor_search_started: Search,
   contractor_search_completed: ListChecks,
   contractor_dial_started: PhoneOutgoing,
@@ -60,17 +62,12 @@ function absoluteTime(iso: string): string {
   });
 }
 
-/**
- * Vertical timeline, latest at top. Rail is a single hairline; nodes are
- * black-ringed circles so the line of events reads as a single column at
- * a glance.
- */
 export function JobTimeline({ events }: { events: JobEvent[] }) {
   const ordered = [...events].sort((a, b) => b.at.localeCompare(a.at));
 
   if (ordered.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+      <div className="rounded-xl border border-dashed border-[#E8E3DA] p-6 text-center text-sm font-medium text-[#9AA0A0]">
         No events yet.
       </div>
     );
@@ -80,21 +77,21 @@ export function JobTimeline({ events }: { events: JobEvent[] }) {
     <ol className="relative ml-2">
       <span
         aria-hidden
-        className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-200 dark:bg-zinc-800"
+        className="absolute left-[7px] top-2 bottom-2 w-px bg-[#E8E3DA]"
       />
       {ordered.map((event) => {
         const Icon = iconFor[event.kind] ?? StickyNote;
         return (
           <li key={event.id} className="relative pl-7 pb-5 last:pb-0">
-            <span className="absolute left-0 top-1 flex size-[15px] items-center justify-center rounded-full border border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950">
-              <Icon className="size-2.5 text-zinc-700 dark:text-zinc-300" />
+            <span className="absolute left-0 top-1 flex size-[15px] items-center justify-center rounded-full border border-[#E8E3DA] bg-white">
+              <Icon className="size-2.5 text-[#3B5A78]" />
             </span>
             <div className="flex items-baseline gap-2">
-              <div className="text-sm font-medium leading-snug tracking-tight text-zinc-900 dark:text-zinc-50">
+              <div className="text-sm font-semibold leading-snug tracking-tight text-[#15161A]">
                 {event.title}
               </div>
               <time
-                className="ml-auto shrink-0 text-xs text-zinc-500 dark:text-zinc-400 tabular-nums"
+                className="ml-auto shrink-0 text-xs font-medium text-[#9AA0A0] tabular-nums"
                 title={absoluteTime(event.at)}
                 dateTime={event.at}
               >
@@ -102,7 +99,7 @@ export function JobTimeline({ events }: { events: JobEvent[] }) {
               </time>
             </div>
             {event.detail ? (
-              <div className="mt-1 text-xs leading-snug text-zinc-600 dark:text-zinc-400">
+              <div className="mt-1 text-xs font-medium leading-snug text-[#6B7070]">
                 {event.detail}
               </div>
             ) : null}

@@ -36,17 +36,14 @@ const STEPS: Step[] = [
 
 export function HowItWorks() {
   return (
-    <section
-      id="how-it-works"
-      className="w-full border-b border-zinc-200 bg-zinc-50 py-24 md:py-32 dark:border-zinc-800 dark:bg-zinc-950"
-    >
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-14 flex flex-col items-start gap-3 md:mb-16">
-          <span className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+    <section id="how-it-works" className="w-full border-b border-[#E8E3DA] bg-[#EEEBE4] py-24 md:py-28">
+      <div className="mx-auto max-w-6xl px-8">
+        <div className="mb-14">
+          <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#3B5A78]">
             How it works
           </span>
-          <h2 className="max-w-2xl text-balance text-3xl font-semibold tracking-tight text-black md:text-4xl dark:text-white">
-            Four steps. Zero forms. The PM only steps in for exceptions.
+          <h2 className="mt-3 max-w-2xl text-balance text-4xl font-black tracking-tight text-[#15161A] md:text-5xl">
+            Four steps. Zero forms.
           </h2>
         </div>
 
@@ -54,20 +51,17 @@ export function HowItWorks() {
           {STEPS.map(({ n, title, body, Icon }) => (
             <div
               key={n}
-              className="flex flex-col rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex flex-col rounded-2xl border border-[#E8E3DA] bg-white p-6"
+              style={{ boxShadow: "0 2px 12px rgba(21,22,26,0.07)" }}
             >
-              <div className="mb-6 flex items-center justify-between">
-                <span className="inline-flex size-7 items-center justify-center rounded-full bg-black text-[11px] font-semibold tracking-wide text-white dark:bg-white dark:text-black">
+              <div className="mb-5 flex items-center justify-between">
+                <span className="inline-flex size-8 items-center justify-center rounded-full bg-[#15161A] text-xs font-black text-[#F6F4EF]">
                   {n}
                 </span>
-                <Icon className="size-4 text-zinc-500 dark:text-zinc-400" />
+                <Icon className="size-4 text-[#9AA0A0]" />
               </div>
-              <h3 className="text-base font-semibold tracking-tight text-black dark:text-white">
-                {title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                {body}
-              </p>
+              <h3 className="text-base font-bold tracking-tight text-[#15161A]">{title}</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-[#6B7070]">{body}</p>
             </div>
           ))}
         </div>

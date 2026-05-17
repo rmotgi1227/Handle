@@ -1,70 +1,64 @@
-import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { JobStatus } from "@/lib/types";
+import type { Job } from "@/lib/types";
 
-const labels: Record<JobStatus, string> = {
+const IN_FLIGHT = new Set<Job["status"]>([
+  "triaging",
+  "sourcing_contractor",
+  "scheduled",
+  "in_progress",
+  "awaiting_survey",
+  "awaiting_payment",
+  "payment_authorized",
+]);
+
+const LABEL: Record<Job["status"], string> = {
   triaging: "Triaging",
   sourcing_contractor: "Sourcing",
   scheduled: "Scheduled",
   in_progress: "In progress",
   awaiting_survey: "Awaiting survey",
   awaiting_payment: "Awaiting payment",
+  payment_authorized: "Payment authorized",
+  paid: "Paid",
   completed: "Completed",
   cancelled: "Cancelled",
 };
 
-type Treatment = "in_flight" | "done" | "cancelled" | "failed";
-
-const treatment: Record<JobStatus, Treatment> = {
-  triaging: "in_flight",
-  sourcing_contractor: "in_flight",
-  scheduled: "in_flight",
-  in_progress: "in_flight",
-  awaiting_survey: "in_flight",
-  awaiting_payment: "in_flight",
-  completed: "done",
-  cancelled: "cancelled",
-};
-
-/**
- * Status reads through dot treatment alone — never through hue.
- * - in_flight: solid black, pulsing
- * - done: solid black, static
- * - cancelled: outline-only
- * - failed: solid black pulsing + small X glyph
- */
 export function StatusPill({
   status,
-  failed = false,
   className,
 }: {
-  status: JobStatus;
-  failed?: boolean;
+  status: Job["status"];
   className?: string;
 }) {
-  const kind: Treatment = failed ? "failed" : treatment[status];
+  const live = IN_FLIGHT.has(status);
+  const done = status === "completed";
+  const paid = status === "paid";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
-        kind === "failed" && "text-zinc-900 dark:text-zinc-100",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+        live && "bg-[#EEF4F9] text-[#3B5A78]",
+        done && "bg-[#EEEBE4] text-[#6B7070]",
+        paid && "bg-[#ECFDF5] text-[#065F46]",
+        status === "cancelled" && "border border-[#E8E3DA] text-[#9AA0A0]",
         className,
       )}
     >
-      {kind === "cancelled" ? (
-        <span className="size-1.5 rounded-full border border-zinc-400 bg-transparent" />
+      {live ? (
+        <span className="relative inline-flex size-1.5">
+          <span className="absolute inset-0 rounded-full bg-[#3B5A78] opacity-75 motion-safe:animate-ping" />
+          <span className="relative size-1.5 rounded-full bg-[#3B5A78]" />
+        </span>
+      ) : paid ? (
+        <span className="size-1.5 rounded-full bg-[#065F46]" />
+      ) : done ? (
+        <span className="size-1.5 rounded-full bg-[#6B7070]" />
       ) : (
-        <span
-          className={cn(
-            "size-1.5 rounded-full bg-black dark:bg-white",
-            (kind === "in_flight" || kind === "failed") &&
-              "motion-safe:animate-pulse",
-          )}
-        />
+        <span className="size-1.5 rounded-full border border-[#9AA0A0]" />
       )}
-      {labels[status]}
-      {kind === "failed" && <X className="size-3" />}
+      {LABEL[status]}
     </span>
   );
 }

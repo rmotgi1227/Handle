@@ -23,42 +23,35 @@ export default function JobsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Every job the agent has touched. {active.length} active · {done.length} closed.
+      <div>
+        <h1 className="text-2xl font-black tracking-tight text-[#15161A]">Jobs</h1>
+        <p className="mt-1 text-sm font-medium text-[#6B7070]">
+          Every job the agent has touched.{" "}
+          <span className="font-bold text-[#15161A]">{active.length} active</span>
+          {" · "}
+          <span>{done.length} closed</span>
         </p>
       </div>
 
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-medium tracking-tight">Active</h2>
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">Sorted by urgency</span>
+          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#15161A]">Active</h2>
+          <span className="text-xs font-medium text-[#9AA0A0]">Sorted by urgency</span>
         </div>
-        <JobList
-          initialJobs={active}
-          contractors={contractors}
-          properties={properties}
-          filterStatuses={ACTIVE_STATUSES}
-        />
+        <JobList initialJobs={active} contractors={contractors} properties={properties} filterStatuses={ACTIVE_STATUSES} />
       </section>
 
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-medium tracking-tight">Closed</h2>
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">Most recent first</span>
+          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#15161A]">Closed</h2>
+          <span className="text-xs font-medium text-[#9AA0A0]">Most recent first</span>
         </div>
         {done.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 p-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+          <div className="rounded-2xl border border-dashed border-[#E8E3DA] p-10 text-center text-sm font-medium text-[#9AA0A0]">
             No closed jobs yet.
           </div>
         ) : (
-          <JobList
-            initialJobs={done}
-            contractors={contractors}
-            properties={properties}
-            filterStatuses={DONE_STATUSES}
-          />
+          <JobList initialJobs={done} contractors={contractors} properties={properties} filterStatuses={DONE_STATUSES} />
         )}
       </section>
     </div>

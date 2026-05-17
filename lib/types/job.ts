@@ -7,6 +7,8 @@ export type JobStatus =
   | "in_progress"
   | "awaiting_survey"
   | "awaiting_payment"
+  | "payment_authorized"
+  | "paid"
   | "completed"
   | "cancelled";
 
@@ -36,6 +38,7 @@ export interface Job {
   };
   satisfactionScore?: number;
   satisfactionFeedback?: string;
+  paymentTxnHash?: string;
 }
 
 export type JobSummary = Pick<
