@@ -582,6 +582,28 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     address: property?.address,
   });
 
+  // 5b. Recall past tenant satisfaction scores to exclude low-rated contractors.
+  //     Separate from buildRecallContext so the exclusion signal is always scoped
+  //     to survey_response memories with typed metadata.score.
+  const negativeContractorIds = new Set<string>();
+  const negativeScores = new Map<string, number>();
+  try {
+    const { memories } = await supermemory.recall({
+      query: `survey_response contractor ${intent.trade} property ${propertyId}`,
+      topK: 5,
+    });
+    for (const mem of memories) {
+      const contractorId = mem.metadata?.contractorId as string | undefined;
+      const score = mem.metadata?.score as number | undefined;
+      if (contractorId && typeof score === "number" && score <= 2) {
+        negativeContractorIds.add(contractorId);
+        negativeScores.set(contractorId, score);
+      }
+    }
+  } catch {
+    // Recall failures are non-fatal — proceed without memory filter.
+  }
+
   store.appendEvent({
     jobId: job.id,
     kind: "context_recalled",
@@ -615,11 +637,27 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     mossHits: ctx.contractorHits,
   });
 
+  // Log skipped events only for contractors actually in the candidate pool.
+  for (const id of contractorIds) {
+    if (negativeContractorIds.has(id)) {
+      const score = negativeScores.get(id);
+      store.appendEvent({
+        jobId: job.id,
+        kind: "contractor_skipped",
+        title: `Skipping contractor — low satisfaction score`,
+        detail: `Tenant rated ${score}/5 on a recent job`,
+        data: { contractorId: id, score },
+      });
+    }
+  }
+
   // 7. Dial top 3 in parallel — first accepted_job WINS the race. The losing
   // dials keep running in the background to fully append their outcome events,
   // but we don't wait for them. In live mode this means a 90-second voicemail
   // never blocks a 3-second accept.
-  const top = contractorIds.slice(0, 3);
+  const top = contractorIds
+    .filter((id) => !negativeContractorIds.has(id))
+    .slice(0, 3);
   type Winner = { contractorId: string; result: DialContractorResult };
   const dialPromises = top.map((contractorId) => {
     const contractor = store.contractors.get(contractorId);

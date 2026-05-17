@@ -28,6 +28,7 @@ const SearchResultSchema = z.object({
   score: z.number(),
   chunks: z.array(SearchChunkSchema).optional().default([]),
   title: z.string().optional().default(""),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
 const SearchResponseSchema = z.object({
@@ -97,6 +98,7 @@ export const supermemory: SupermemoryClient = {
         id: r.documentId,
         text: chunksToText(r.chunks, r.title),
         score: r.score,
+        metadata: r.metadata,
       })),
     };
   },

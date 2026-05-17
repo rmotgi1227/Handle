@@ -1,6 +1,9 @@
 import { revalidatePath } from "next/cache";
 import { agentmail } from "@/lib/integrations/agentmail";
+import { agentphone } from "@/lib/integrations/agentphone";
+import { supermemory } from "@/lib/integrations/supermemory";
 import { sponge } from "@/lib/integrations/sponge";
+import { env } from "@/lib/env";
 import { stripe } from "@/lib/integrations/stripe";
 import { store } from "@/lib/store/memory";
 import type { Job } from "@/lib/types";
@@ -151,13 +154,22 @@ export async function sendSurveyRequest(
 ): Promise<SendSurveyRequestResult> {
   const job = getJobOrThrow(input.jobId);
   const reporter = store.people.get(job.reportedByPersonId);
-  const to = reporter?.email ?? "tenant@example.com";
+  const phone = reporter?.phone;
 
-  const sent = await agentmail.sendEmail({
-    to,
-    subject: `How was the work on "${job.title}"?`,
-    text: `Hi ${reporter?.name ?? "there"}, please rate the work: ${process.env.NEXT_PUBLIC_APP_URL ?? ""}/survey/${job.id}`,
-    tags: ["survey", job.id],
+  if (!phone) {
+    store.appendEvent({
+      jobId: job.id,
+      kind: "survey_skipped",
+      title: "Survey skipped",
+      detail: "No phone number on file for tenant",
+    });
+    return { messageId: "no_phone" };
+  }
+
+  const appUrl = env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const sent = await agentphone.sendSms({
+    to: phone,
+    body: `Hi ${reporter.name ?? "there"}, how was the work on "${job.title}"? Rate it here: ${appUrl}/survey/${job.id}`,
   });
 
   store.upsertJob({ id: job.id, status: "awaiting_survey" });
@@ -165,7 +177,7 @@ export async function sendSurveyRequest(
     jobId: job.id,
     kind: "survey_sent",
     title: "Survey request sent",
-    detail: `Emailed ${to}`,
+    detail: `Texted ${phone}`,
   });
 
   return { messageId: sent.messageId };
@@ -197,6 +209,30 @@ export async function recordSurveyResponse(
     detail: input.feedback,
     data: { score: input.score, feedback: input.feedback },
   });
+
+  if (job.assignedContractorId) {
+    try {
+      await supermemory.remember({
+        text: `survey_response contractor:${job.assignedContractorId} trade:${job.trade} property:${job.propertyId} score:${input.score}/5 — "${job.title}"${input.feedback ? ` — "${input.feedback}"` : ""}`,
+        tags: [
+          "survey_response",
+          `contractor:${job.assignedContractorId}`,
+          `property:${job.propertyId}`,
+          `trade:${job.trade}`,
+        ],
+        metadata: {
+          jobId: job.id,
+          contractorId: job.assignedContractorId,
+          propertyId: job.propertyId,
+          trade: job.trade,
+          score: input.score,
+        },
+      });
+    } catch (err) {
+      console.error("[supermemory] remember failed:", err);
+    }
+  }
+
   return { job: updated };
 }
 

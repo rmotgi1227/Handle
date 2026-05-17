@@ -37,6 +37,8 @@ export interface AgentPhoneClient {
     transcript: string;
     recentHistory: { role: "user" | "model"; text: string }[];
   }>;
+  /** Send an SMS to a tenant (used for survey links). */
+  sendSms(input: { to: string; body: string }): Promise<{ messageId: string }>;
 }
 
 /**

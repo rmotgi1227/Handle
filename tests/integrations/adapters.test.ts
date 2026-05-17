@@ -115,10 +115,12 @@ describe("supermemory mock", () => {
         id: expect.any(String),
         text: expect.any(String),
         score: expect.any(Number),
+        metadata: expect.any(Object),
       });
     }
   });
 });
+
 
 describe("browseruse mock", () => {
   it("findContractors returns candidates with required shape", async () => {
@@ -139,23 +141,9 @@ describe("browseruse mock", () => {
 });
 
 describe("sponge mock", () => {
-  it("createInvoice + getInvoice produce the expected shape", async () => {
-    const inv = await sponge.createInvoice({
-      contractorId: "ctr_seed_1",
-      payerEmail: "owner@example.com",
-      amountCents: 24_900,
-      memo: "Plumbing repair",
-    });
-    expect(inv).toMatchObject({
-      invoiceId: expect.any(String),
-      payUrl: expect.any(String),
-    });
-
-    const first = await sponge.getInvoice(inv.invoiceId);
-    expect(first).toMatchObject({ status: expect.any(String) });
-
-    const second = await sponge.getInvoice(inv.invoiceId);
-    expect(second).toMatchObject({ status: expect.any(String) });
+  it("checkBalance returns expected shape", async () => {
+    const bal = await sponge.checkBalance();
+    expect(bal).toMatchObject({ usdc: expect.any(Number) });
   });
 });
 
