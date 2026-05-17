@@ -26,31 +26,41 @@ class MemoryStore {
   contractorCalls = new Map<string, ContractorCall>();
 
   // --- Jobs ---
-  upsertJob(partial: Partial<Job> & Pick<Job, "title" | "propertyId" | "trade" | "urgency" | "reportedByPersonId">): Job {
+  /**
+   * Create or update a Job. On creation the partial MUST include the fields
+   * required by `Job`. On update, only `id` plus the fields you're changing —
+   * existing values are preserved by merge. This avoids the bug where every
+   * status transition has to re-pass title/trade/urgency or risk losing them.
+   */
+  upsertJob(partial: Partial<Job> & { id?: string }): Job {
     const now = new Date().toISOString();
     const id = partial.id ?? `job_${nanoid(8)}`;
     const existing = this.jobs.get(id);
-    const job: Job = {
+
+    if (!existing) {
+      // First write — assert required fields are present.
+      const requiredKeys = ["propertyId", "reportedByPersonId", "trade", "urgency", "title"] as const;
+      const missing = requiredKeys.filter((k) => partial[k] === undefined);
+      if (missing.length > 0) {
+        throw new Error(`upsertJob: missing required fields on create: ${missing.join(", ")}`);
+      }
+    }
+
+    const merged: Job = {
+      ...(existing ?? {
+        createdAt: now,
+        status: "triaging" as const,
+        description: "",
+        callIds: [],
+      }),
+      ...partial,
       id,
-      propertyId: partial.propertyId,
-      reportedByPersonId: partial.reportedByPersonId,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
-      status: partial.status ?? existing?.status ?? "triaging",
-      urgency: partial.urgency,
-      trade: partial.trade,
-      title: partial.title,
-      description: partial.description ?? existing?.description ?? "",
-      diagnosis: partial.diagnosis ?? existing?.diagnosis,
-      assignedContractorId: partial.assignedContractorId ?? existing?.assignedContractorId,
-      scheduledFor: partial.scheduledFor ?? existing?.scheduledFor,
-      totalCostCents: partial.totalCostCents ?? existing?.totalCostCents,
-      callIds: partial.callIds ?? existing?.callIds ?? [],
-      satisfactionScore: partial.satisfactionScore ?? existing?.satisfactionScore,
-      satisfactionFeedback: partial.satisfactionFeedback ?? existing?.satisfactionFeedback,
-    };
-    this.jobs.set(id, job);
-    return job;
+    } as Job;
+
+    this.jobs.set(id, merged);
+    return merged;
   }
 
   getJob(id: string): Job | undefined {
