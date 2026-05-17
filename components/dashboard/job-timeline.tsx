@@ -16,6 +16,7 @@ import {
   Receipt,
   DollarSign,
   StickyNote,
+  Camera,
 } from "lucide-react";
 import type { JobEvent, JobEventKind } from "@/lib/types";
 
@@ -37,6 +38,7 @@ const iconFor: Record<JobEventKind, typeof Phone> = {
   invoice_sent: Receipt,
   paid: DollarSign,
   note: StickyNote,
+  visual_triage: Camera,
 };
 
 function relativeTime(iso: string): string {

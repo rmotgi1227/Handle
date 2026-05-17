@@ -30,6 +30,12 @@ export interface Job {
   scheduledFor?: string;
   totalCostCents?: number;
   callIds: string[];
+  visualContext?: {
+    description: string;
+    severity: "emergency" | "urgent" | "standard";
+    guidelines: { id: string; text: string; score: number }[];
+    mediaUrl: string;
+  };
   satisfactionScore?: number;
   satisfactionFeedback?: string;
   paymentTxnHash?: string;
