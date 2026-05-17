@@ -66,8 +66,8 @@ export default function DashboardOverviewPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-black tracking-tight text-[#15161A]">Overview</h1>
+        <p className="mt-1 text-sm font-medium text-[#6B7070]">
           What needs your attention right now. Updates every few seconds.
         </p>
       </div>
@@ -101,10 +101,10 @@ export default function DashboardOverviewPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <section
-          className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+          className="flex h-[640px] flex-col overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
           style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
         >
-          <header className="flex items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
+          <header className="flex shrink-0 items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
             <h2 className="text-sm font-bold tracking-tight text-[#15161A]">
               Active jobs
             </h2>
@@ -112,19 +112,21 @@ export default function DashboardOverviewPage() {
               Sorted by urgency
             </span>
           </header>
-          <JobList
-            initialJobs={jobs}
-            contractors={contractors}
-            properties={properties}
-            variant="row"
-          />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <JobList
+              initialJobs={jobs}
+              contractors={contractors}
+              properties={properties}
+              variant="row"
+            />
+          </div>
         </section>
 
         <section
-          className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+          className="flex h-[640px] flex-col overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
           style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
         >
-          <header className="flex items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
+          <header className="flex shrink-0 items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
             <h2 className="text-sm font-bold tracking-tight text-[#15161A]">
               Recent calls
             </h2>
@@ -132,13 +134,15 @@ export default function DashboardOverviewPage() {
               Last {calls.length}
             </span>
           </header>
-          <div className="flex flex-col divide-y divide-[#E8E3DA]">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {calls.length === 0 ? (
               <div className="px-5 py-10 text-center text-xs font-medium text-[#9AA0A0]">
                 No recent calls.
               </div>
             ) : (
-              calls.map((c) => <LiveCallCard key={c.id} call={c} variant="row" />)
+              <div className="flex flex-col divide-y divide-[#E8E3DA]">
+                {calls.map((c) => <LiveCallCard key={c.id} call={c} variant="row" />)}
+              </div>
             )}
           </div>
         </section>
