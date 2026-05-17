@@ -564,8 +564,77 @@ export function seedOnce(): void {
       "Cast-iron drain stacks original to 1932 — slowly being replaced as units turn over. Roof scheduled for replacement Fall 2026.",
   });
 
+  // prop_8 — 388 Mission Bay Blvd S — 24-unit Mission Bay new construction
+  store.upsertProperty({
+    id: "prop_8",
+    address: "388 Mission Bay Blvd S",
+    unit: "612",
+    managerId: "person_pm_1",
+    ownerId: "person_owner_2",
+    tenantIds: [
+      "person_tenant_30", "person_tenant_31", "person_tenant_32",
+      "person_tenant_33", "person_tenant_34", "person_tenant_35",
+      "person_tenant_36", "person_tenant_37",
+    ],
+    propertyType: "condo_building",
+    yearBuilt: 2021,
+    gateCode: "388*",
+    lockboxCode: "MBay-Svc",
+    parkingNotes:
+      "Loading dock on Mission Bay Blvd — 30-min limit. Garage P1/P2, contractors validate at concierge for 4hr pass. 12 EV chargers (ChargePoint) on P1.",
+    accessNotes:
+      "24/7 concierge + package room. Service elevator (south bank) for any tools or large items. COI required on file before contractor badges are issued. Rooftop pool/gym access is amenity-card only — concierge can issue a temp card for work.",
+    waterShutoffLocation:
+      "Per-unit shutoffs behind a labeled access panel inside each laundry closet. Building main in the P2 mechanical room (key with concierge).",
+    electricalPanelLocation:
+      "Per-unit panel inside laundry. Building switchgear in P2 — managed by Bayfront Building Services (415-555-0200).",
+    hvacType:
+      "Daikin VRV V heat pumps per unit (2021). Rooftop condenser bank — HVAC vendor MUST coordinate w/ HOA before rooftop access and provide fall-protection plan.",
+    ownerInstructions:
+      "HOA enforces a strict 9a–6p workday rule M–F. No weekend work. All contractors must wear ID badges from concierge. Owner prefers FastFix HVAC for any HVAC work (they did the building commissioning).",
+    spendCapCents: 175000,
+    emergencyContactName: "Marcus Beaumont (owner)",
+    emergencyContactPhone: "+14155551302",
+    notes:
+      "New construction — most issues still under builder warranty (Strada Investment, until 2026-12-31). Always check warranty before authorizing paid work on building systems. EV-charger billing is shared — never disable a charger without notifying concierge.",
+  });
+
+  // prop_9 — 1645 Vallejo St — Russian Hill 6-unit walk-up with city views
+  store.upsertProperty({
+    id: "prop_9",
+    address: "1645 Vallejo St",
+    unit: "4",
+    managerId: "person_pm_1",
+    ownerId: "person_owner_1",
+    tenantIds: [
+      "person_tenant_38", "person_tenant_39",
+      "person_tenant_40", "person_tenant_41",
+    ],
+    propertyType: "apartment_building",
+    yearBuilt: 1915,
+    gateCode: "1645",
+    lockboxCode: "Vallejo15",
+    parkingNotes:
+      "No on-site parking — Russian Hill is permit zone Y, brutal mid-day. Contractors should use the Polk St garage (5 blocks east).",
+    accessNotes:
+      "1915 walk-up, four flights, no elevator. Front entry on Vallejo with a brass key (lockbox under the planter). Service entry on the alley side of the building.",
+    waterShutoffLocation:
+      "Basement, near the boiler. Old gate valve — turn slowly, brittle washer last replaced 2023.",
+    electricalPanelLocation:
+      "Per-unit panel in the kitchen. Building main in the basement next to the boiler (panel labeled Vallejo Main).",
+    hvacType:
+      "Steam radiators — boiler is a 1990s Burnham (no AC, no need on Russian Hill).",
+    ownerInstructions:
+      "Tenants here are long-term renters — be respectful, no surprises. Bay Area Plumbing has worked the building twice in the last two years. Any spend over the cap needs Priya's written approval.",
+    spendCapCents: 55000,
+    emergencyContactName: "Priya Kapoor (owner)",
+    emergencyContactPhone: "+14155551301",
+    notes:
+      "Russian Hill — steep stairs, narrow stairwell. Be honest with contractors about the climb (no ladders longer than 8ft will fit up the stairwell, use the alley fire-escape for long tools).",
+  });
+
   // -------------------------------------------------------------------------
-  // Tenants for prop_3 through prop_7
+  // Tenants for prop_3 through prop_9
   // -------------------------------------------------------------------------
 
   // prop_3 — Hayes Valley (6 named tenants in 12-unit building)
@@ -599,6 +668,22 @@ export function seedOnce(): void {
   store.upsertPerson({ id: "person_tenant_27", role: "tenant", name: "Dr. Owen Whitley",  phone: "+14155551541", propertyId: "prop_7", unitId: "unit_p7_2" });
   store.upsertPerson({ id: "person_tenant_28", role: "tenant", name: "Niko Reinholt",     phone: "+14155551542", propertyId: "prop_7", unitId: "unit_p7_3" });
   store.upsertPerson({ id: "person_tenant_29", role: "tenant", name: "Dr. Ada Mwangi",    phone: "+14155551543", propertyId: "prop_7", unitId: "unit_p7_5" });
+
+  // prop_8 — Mission Bay (8 named tenants in 24-unit tower)
+  store.upsertPerson({ id: "person_tenant_30", role: "tenant", name: "Saoirse Donovan",  phone: "+14155551550", propertyId: "prop_8", unitId: "unit_p8_408" });
+  store.upsertPerson({ id: "person_tenant_31", role: "tenant", name: "Mateo Velazquez",  phone: "+14155551551", propertyId: "prop_8", unitId: "unit_p8_510" });
+  store.upsertPerson({ id: "person_tenant_32", role: "tenant", name: "Priscilla Quinn",  phone: "+14155551552", propertyId: "prop_8", unitId: "unit_p8_612" });
+  store.upsertPerson({ id: "person_tenant_33", role: "tenant", name: "Devon Ashworth",   phone: "+14155551553", propertyId: "prop_8", unitId: "unit_p8_708" });
+  store.upsertPerson({ id: "person_tenant_34", role: "tenant", name: "Aanya Krishnan",   phone: "+14155551554", propertyId: "prop_8", unitId: "unit_p8_812" });
+  store.upsertPerson({ id: "person_tenant_35", role: "tenant", name: "Lucas Beaumont",   phone: "+14155551555", propertyId: "prop_8", unitId: "unit_p8_1010" });
+  store.upsertPerson({ id: "person_tenant_36", role: "tenant", name: "Esther Goldfarb",  phone: "+14155551556", propertyId: "prop_8", unitId: "unit_p8_1208" });
+  store.upsertPerson({ id: "person_tenant_37", role: "tenant", name: "Rashid Hamdan",    phone: "+14155551557", propertyId: "prop_8", unitId: "unit_p8_1410" });
+
+  // prop_9 — Russian Hill (4 tenants in 6 units)
+  store.upsertPerson({ id: "person_tenant_38", role: "tenant", name: "Imogen Whitlock",  phone: "+14155551560", propertyId: "prop_9", unitId: "unit_p9_1" });
+  store.upsertPerson({ id: "person_tenant_39", role: "tenant", name: "Felix Brennan",    phone: "+14155551561", propertyId: "prop_9", unitId: "unit_p9_3" });
+  store.upsertPerson({ id: "person_tenant_40", role: "tenant", name: "Jin-soo Park",     phone: "+14155551562", propertyId: "prop_9", unitId: "unit_p9_4" });
+  store.upsertPerson({ id: "person_tenant_41", role: "tenant", name: "Cosima Andrade",   phone: "+14155551563", propertyId: "prop_9", unitId: "unit_p9_6" });
 
   // -------------------------------------------------------------------------
   // Units for prop_3 through prop_7
@@ -654,6 +739,40 @@ export function seedOnce(): void {
   store.upsertUnit({ id: "unit_p7_4", propertyId: "prop_7", label: "4", floor: 3, bedrooms: 1, bathrooms: 1, sqft: 600, tenantIds: [], vacant: true, notes: "Vacant — listed at $2,950/mo, no current showings." });
   store.upsertUnit({ id: "unit_p7_5", propertyId: "prop_7", label: "5", floor: 3, bedrooms: 2, bathrooms: 1, sqft: 780, lockboxCode: "5015", tenantIds: ["person_tenant_29"], notes: "Tenant is a research fellow — quiet hours respected. Filing cabinets near the window, take care with the floor." });
   store.upsertUnit({ id: "unit_p7_6", propertyId: "prop_7", label: "6 (top)", floor: 3, bedrooms: 2, bathrooms: 1, sqft: 820, tenantIds: [], vacant: true, notes: "Vacant — top-floor unit, recently re-painted, waiting for a renter." });
+
+  // prop_8 — 388 Mission Bay Blvd S (24 units, new construction)
+  store.upsertUnit({ id: "unit_p8_201", propertyId: "prop_8", label: "201", floor: 2, bedrooms: 1, bathrooms: 1, sqft: 690, tenantIds: [], vacant: true, notes: "Vacant — facing Mission Bay Blvd, expect more street noise." });
+  store.upsertUnit({ id: "unit_p8_205", propertyId: "prop_8", label: "205", floor: 2, bedrooms: 1, bathrooms: 1, sqft: 700, tenantIds: [], vacant: true, notes: "Vacant — staged for showings." });
+  store.upsertUnit({ id: "unit_p8_308", propertyId: "prop_8", label: "308", floor: 3, bedrooms: 2, bathrooms: 2, sqft: 1050, tenantIds: [], vacant: true, notes: "Vacant — Bosch package still under warranty." });
+  store.upsertUnit({ id: "unit_p8_312", propertyId: "prop_8", label: "312", floor: 3, bedrooms: 2, bathrooms: 2, sqft: 1050, tenantIds: [], vacant: true, notes: "Vacant — south-facing." });
+  store.upsertUnit({ id: "unit_p8_408", propertyId: "prop_8", label: "408", floor: 4, bedrooms: 1, bathrooms: 1, sqft: 720, lockboxCode: "0408", tenantIds: ["person_tenant_30"], notes: "Tenant works night shift at UCSF Mission Bay — coordinate after 2pm." });
+  store.upsertUnit({ id: "unit_p8_510", propertyId: "prop_8", label: "510", floor: 5, bedrooms: 2, bathrooms: 2, sqft: 1080, lockboxCode: "0510", tenantIds: ["person_tenant_31"], notes: "Family with toddler — no power tools 12p–2p (nap time)." });
+  store.upsertUnit({ id: "unit_p8_612", propertyId: "prop_8", label: "612", floor: 6, bedrooms: 2, bathrooms: 2, sqft: 1080, lockboxCode: "0612", tenantIds: ["person_tenant_32"], notes: "Smart-home enthusiast — Lutron + Sonos. Check app before flipping switches." });
+  store.upsertUnit({ id: "unit_p8_708", propertyId: "prop_8", label: "708", floor: 7, bedrooms: 1, bathrooms: 1, sqft: 720, lockboxCode: "0708", tenantIds: ["person_tenant_33"], notes: "Single occupant, works onsite at Mission Bay — easy to coordinate weekdays." });
+  store.upsertUnit({ id: "unit_p8_812", propertyId: "prop_8", label: "812", floor: 8, bedrooms: 2, bathrooms: 2, sqft: 1100, lockboxCode: "0812", tenantIds: ["person_tenant_34"], notes: "Heated towel rack in primary — Mr. Steam, vendor on file." });
+  store.upsertUnit({ id: "unit_p8_908", propertyId: "prop_8", label: "908", floor: 9, bedrooms: 1, bathrooms: 1, sqft: 740, tenantIds: [], vacant: true, notes: "Vacant — listed at $4,400/mo." });
+  store.upsertUnit({ id: "unit_p8_1010", propertyId: "prop_8", label: "1010", floor: 10, bedrooms: 2, bathrooms: 2, sqft: 1120, lockboxCode: "1010", tenantIds: ["person_tenant_35"], notes: "Tenant is owner's nephew — bill the owner direct, not the tenant." });
+  store.upsertUnit({ id: "unit_p8_1108", propertyId: "prop_8", label: "1108", floor: 11, bedrooms: 1, bathrooms: 1, sqft: 740, tenantIds: [], vacant: true, notes: "Vacant — staged for showings." });
+  store.upsertUnit({ id: "unit_p8_1208", propertyId: "prop_8", label: "1208", floor: 12, bedrooms: 2, bathrooms: 2, sqft: 1140, lockboxCode: "1208", tenantIds: ["person_tenant_36"], notes: "Tenant has elderly mother visiting — text first, no after-7pm work." });
+  store.upsertUnit({ id: "unit_p8_1310", propertyId: "prop_8", label: "1310", floor: 13, bedrooms: 2, bathrooms: 2, sqft: 1160, tenantIds: [], vacant: true, notes: "Vacant — listed at $5,900/mo, corner unit." });
+  store.upsertUnit({ id: "unit_p8_1410", propertyId: "prop_8", label: "1410", floor: 14, bedrooms: 3, bathrooms: 2, sqft: 1480, lockboxCode: "1410", tenantIds: ["person_tenant_37"], notes: "Live/work for a small design studio — workspace in second bedroom." });
+  store.upsertUnit({ id: "unit_p8_1508", propertyId: "prop_8", label: "1508 (PH)", floor: 15, bedrooms: 3, bathrooms: 3, sqft: 1880, tenantIds: [], vacant: true, spendCapCents: 300000, notes: "Penthouse — vacant, currently owner-staged for sale." });
+  store.upsertUnit({ id: "unit_p8_g01", propertyId: "prop_8", label: "G01 (retail)", floor: 1, bedrooms: 0, bathrooms: 1, sqft: 1200, tenantIds: [], vacant: true, notes: "Ground-floor retail — currently a coffee popup (Saint Frank). Lease ends Dec." });
+  store.upsertUnit({ id: "unit_p8_g02", propertyId: "prop_8", label: "G02 (retail)", floor: 1, bedrooms: 0, bathrooms: 1, sqft: 1100, tenantIds: [], vacant: true, notes: "Ground-floor retail — under LOI to a Pilates studio (closing May)." });
+  store.upsertUnit({ id: "unit_p8_405", propertyId: "prop_8", label: "405", floor: 4, bedrooms: 1, bathrooms: 1, sqft: 700, tenantIds: [], vacant: true, notes: "Vacant — staged for short-term rental program." });
+  store.upsertUnit({ id: "unit_p8_502", propertyId: "prop_8", label: "502", floor: 5, bedrooms: 1, bathrooms: 1, sqft: 740, tenantIds: [], vacant: true, notes: "Vacant — recent paint touch-up." });
+  store.upsertUnit({ id: "unit_p8_602", propertyId: "prop_8", label: "602", floor: 6, bedrooms: 1, bathrooms: 1, sqft: 740, tenantIds: [], vacant: true, notes: "Vacant — east-facing, gets early sun." });
+  store.upsertUnit({ id: "unit_p8_705", propertyId: "prop_8", label: "705", floor: 7, bedrooms: 2, bathrooms: 2, sqft: 1080, tenantIds: [], vacant: true, notes: "Vacant — listed at $5,200/mo." });
+  store.upsertUnit({ id: "unit_p8_802", propertyId: "prop_8", label: "802", floor: 8, bedrooms: 1, bathrooms: 1, sqft: 760, tenantIds: [], vacant: true, notes: "Vacant — recent paint touch-up." });
+  store.upsertUnit({ id: "unit_p8_902", propertyId: "prop_8", label: "902", floor: 9, bedrooms: 2, bathrooms: 2, sqft: 1100, tenantIds: [], vacant: true, notes: "Vacant — owner is reviewing rent strategy for upper floors." });
+
+  // prop_9 — 1645 Vallejo St (6 units, Russian Hill walk-up)
+  store.upsertUnit({ id: "unit_p9_1", propertyId: "prop_9", label: "1 (garden)", floor: 1, bedrooms: 1, bathrooms: 1, sqft: 620, lockboxCode: "1645", tenantIds: ["person_tenant_38"], notes: "Garden unit — patio access via French doors in kitchen. Tenant has Bay Bridge view from the back window." });
+  store.upsertUnit({ id: "unit_p9_2", propertyId: "prop_9", label: "2", floor: 2, bedrooms: 1, bathrooms: 1, sqft: 640, tenantIds: [], vacant: true, notes: "Vacant — recent kitchen reno just wrapped." });
+  store.upsertUnit({ id: "unit_p9_3", propertyId: "prop_9", label: "3", floor: 2, bedrooms: 2, bathrooms: 1, sqft: 820, lockboxCode: "Vallejo3", tenantIds: ["person_tenant_39"], notes: "Original wainscoting in dining — flag for any wall work." });
+  store.upsertUnit({ id: "unit_p9_4", propertyId: "prop_9", label: "4", floor: 3, bedrooms: 2, bathrooms: 1, sqft: 840, lockboxCode: "Vallejo4", tenantIds: ["person_tenant_40"], notes: "Tenant has Bay + Golden Gate view from the bay window. Long-term renter, very particular about scheduling — text 48hr in advance." });
+  store.upsertUnit({ id: "unit_p9_5", propertyId: "prop_9", label: "5", floor: 4, bedrooms: 1, bathrooms: 1, sqft: 660, tenantIds: [], vacant: true, notes: "Vacant — listed at $3,400/mo, four-flight walkup discounts apply." });
+  store.upsertUnit({ id: "unit_p9_6", propertyId: "prop_9", label: "6 (top)", floor: 4, bedrooms: 2, bathrooms: 1, sqft: 920, lockboxCode: "Vallejo6", tenantIds: ["person_tenant_41"], notes: "Top-floor — skylight in primary bath, leaks every El Niño. Skylight scheduled for replacement Fall 2026." });
 
   // Contractor pool
   const contractors = [
