@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { agentmail } from "@/lib/integrations/agentmail";
 import { sponge } from "@/lib/integrations/sponge";
+import { stripe } from "@/lib/integrations/stripe";
 import { store } from "@/lib/store/memory";
 import type { Job } from "@/lib/types";
 
@@ -197,6 +198,81 @@ export async function recordSurveyResponse(
     data: { score: input.score, feedback: input.feedback },
   });
   return { job: updated };
+}
+
+// --- Bill the property owner via Stripe ---
+export interface BillPropertyOwnerInput {
+  jobId: string;
+}
+export interface BillPropertyOwnerResult {
+  invoiceId: string;
+  hostedUrl: string;
+}
+export async function billPropertyOwner(
+  input: BillPropertyOwnerInput,
+): Promise<BillPropertyOwnerResult> {
+  const job = getJobOrThrow(input.jobId);
+  if (!job.totalCostCents) {
+    throw new ActionError("no_amount", "job has no invoice amount — send invoice first", 400);
+  }
+  if (job.ownerInvoiceId) {
+    throw new ActionError("already_billed", "owner has already been billed for this job", 400);
+  }
+
+  const property = store.properties.get(job.propertyId);
+  const owner = property ? store.people.get(property.ownerId) : undefined;
+  if (!owner?.email) {
+    throw new ActionError(
+      "no_owner_email",
+      `Property owner has no email on file`,
+      400,
+    );
+  }
+
+  const { invoiceId, hostedUrl } = await stripe.createInvoice({
+    ownerEmail: owner.email,
+    amountCents: job.totalCostCents,
+    description: `Property maintenance: ${job.title}`,
+    jobId: job.id,
+  });
+
+  store.upsertJob({ id: job.id, ownerInvoiceId: invoiceId });
+  store.appendEvent({
+    jobId: job.id,
+    kind: "owner_billed",
+    title: `Owner billed $${(job.totalCostCents / 100).toFixed(2)} via Stripe`,
+    detail: `Invoice sent to ${owner.email}`,
+    data: { invoiceId, hostedUrl, amountCents: job.totalCostCents },
+  });
+
+  await agentmail.sendEmail({
+    to: owner.email,
+    subject: `Invoice for maintenance: ${job.title}`,
+    text: `Hi ${owner.name ?? "there"}, your maintenance invoice for "${job.title}" is ready. Amount: $${(job.totalCostCents / 100).toFixed(2)}. Pay here: ${hostedUrl}`,
+    tags: ["owner-invoice", job.id],
+  });
+
+  return { invoiceId, hostedUrl };
+}
+
+// --- Record owner payment (called by Stripe webhook) ---
+export interface RecordOwnerPaymentInput {
+  jobId: string;
+  stripeInvoiceId: string;
+  paidAt: string;
+}
+export async function recordOwnerPayment(
+  input: RecordOwnerPaymentInput,
+): Promise<void> {
+  const job = getJobOrThrow(input.jobId);
+  store.upsertJob({ id: job.id, ownerPaidAt: input.paidAt, status: "completed" });
+  store.appendEvent({
+    jobId: job.id,
+    kind: "owner_paid",
+    title: "Owner payment received",
+    detail: `Stripe invoice ${input.stripeInvoiceId} paid`,
+    data: { stripeInvoiceId: input.stripeInvoiceId, paidAt: input.paidAt },
+  });
 }
 
 // --- Add a PM note to the job timeline ---

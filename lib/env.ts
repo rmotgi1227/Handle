@@ -33,6 +33,9 @@ const EnvSchema = z.object({
   SPONGE_API_KEY: z.string().optional(),
   SPONGE_ACCOUNT_ID: z.string().optional(),
 
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
   AGENTMAIL_API_KEY: z.string().optional(),
   AGENTMAIL_INBOX: z.string().optional(),
 });
