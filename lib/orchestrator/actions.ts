@@ -123,12 +123,18 @@ export async function createInvoiceForJob(
     data: { amountCents: input.amountCents, invoiceId, hostedUrl },
   });
 
-  await agentmail.sendEmail({
-    to: owner.email,
-    subject: `Invoice from ${contractor.name} — ${job.title}`,
-    text: `Hi ${owner.name ?? "there"}, ${contractor.name} sent an invoice for "${job.title}" ($${(input.amountCents / 100).toFixed(2)}). Handle's agent will settle it via Sponge. Invoice: ${hostedUrl}`,
-    tags: ["invoice", job.id],
-  });
+  // Email is best-effort — Stripe invoice already exists and the agent will
+  // still settle via Sponge even if the courtesy email to the owner fails.
+  try {
+    await agentmail.sendEmail({
+      to: owner.email,
+      subject: `Invoice from ${contractor.name} — ${job.title}`,
+      text: `Hi ${owner.name ?? "there"}, ${contractor.name} sent an invoice for "${job.title}" ($${(input.amountCents / 100).toFixed(2)}). Handle's agent will settle it via Sponge. Invoice: ${hostedUrl}`,
+      tags: ["invoice", job.id],
+    });
+  } catch (err) {
+    console.error("[createInvoiceForJob] agentmail failed (non-fatal):", err);
+  }
 
   return { invoiceId, hostedUrl, amountCents: input.amountCents };
 }
@@ -144,6 +150,13 @@ export async function payContractor(
   input: PayContractorInput,
 ): Promise<PayContractorResult> {
   const job = getJobOrThrow(input.jobId);
+  if (job.paymentTxnHash || job.status === "paid" || job.status === "completed") {
+    throw new ActionError(
+      "already_paid",
+      `job already paid (txn ${job.paymentTxnHash ?? "—"})`,
+      400,
+    );
+  }
   if (!job.assignedContractorId) {
     throw new ActionError("no_contractor", "job has no assigned contractor", 400);
   }

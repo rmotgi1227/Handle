@@ -55,7 +55,7 @@ async function mcpToolCall(
   });
 
   const envelope = await res.json() as {
-    result?: { content: Array<{ type: string; text: string }> };
+    result?: { content: Array<{ type: string; text: string }>; isError?: boolean };
     error?: { code: number; message: string };
   };
 
@@ -65,6 +65,14 @@ async function mcpToolCall(
 
   const text = envelope.result?.content?.[0]?.text;
   if (!text) throw new IntegrationError("sponge", `Empty MCP response from ${toolName}`);
+
+  // Sponge surfaces tool errors with isError=true and a plaintext message in
+  // `text` (e.g. "Error: 'data' is only supported on Tempo"). Throw with the
+  // raw message instead of trying to JSON.parse it.
+  if (envelope.result?.isError) {
+    throw new IntegrationError("sponge", `${toolName} failed: ${text}`);
+  }
+
   return JSON.parse(text);
 }
 
@@ -89,13 +97,16 @@ export const sponge: SpongeClient = {
     };
   },
 
-  async payContractor({ toAddress, amountUsdc, memo }): Promise<SpongePayResult> {
+  async payContractor({ toAddress, amountUsdc }): Promise<SpongePayResult> {
+    // NOTE: Sponge's `transfer` only accepts `data` on the Tempo chain. For
+    // Solana the memo is rejected with a tool error, so we don't forward it —
+    // the on-chain settlement is still tied back to the job via the timeline
+    // event we record (which stores job + amount + txn hash together).
     const result = await call("transfer", {
       chain: CHAIN,
       to: toAddress,
       amount: amountUsdc.toString(),
       token: TOKEN,
-      ...(memo ? { data: memo } : {}),
     }) as Record<string, unknown>;
 
     // Sponge MCP returns `transactionHash` (camelCase); accept other casings defensively.

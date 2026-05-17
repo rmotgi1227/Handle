@@ -46,9 +46,18 @@ export default async function JobDetailPage({
     try {
       // $1.00 demo amount — fits comfortably within the live Sponge wallet's USDC balance.
       await createInvoiceForJob({ jobId: id, amountCents: 100 });
+      // 5s "agent decision" delay so the timeline keeps the invoice_sent and
+      // paid events as visibly distinct steps. Narrate as the agent reviewing
+      // the invoice before authorising payment.
+      await new Promise((r) => setTimeout(r, 5000));
+      await payContractor({ jobId: id });
       revalidatePath(`/dashboard/jobs/${id}`);
     } catch (err) {
       console.error("[sendInvoice]", err);
+      // Revalidate anyway so any partial state (e.g. Stripe succeeded but
+      // Sponge errored) is visible to the PM, who can then hit "Pay contractor
+      // via Sponge" as a manual retry.
+      revalidatePath(`/dashboard/jobs/${id}`);
     }
   }
   async function sendSurvey() {
