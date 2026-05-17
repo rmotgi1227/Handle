@@ -42,6 +42,7 @@ type UnitCtx = {
   tenants: Person[];
   recentJobIds: string[];
   effectiveSpendCapCents?: number;
+  ownership: "rental" | "owner_occupied";
 };
 
 type Ctx = {
