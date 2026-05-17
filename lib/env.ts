@@ -5,6 +5,11 @@ const EnvSchema = z.object({
 
   INTEGRATION_MODE: z.enum(["mock", "live"]).default("mock"),
 
+  /** Boot-time gate: only seed Supermemory/Moss when explicitly enabled.
+   * Supermemory.add() doesn't dedupe, so leaving this on in prod re-seeds
+   * every cold start. Set to "true" for first deploy, then unset. */
+  SEED_ON_BOOT: z.preprocess((v) => v === "true" || v === "1", z.boolean().default(false)),
+
   AGENTPHONE_API_KEY: z.string().optional(),
   AGENTPHONE_NUMBER: z.string().optional(),
   AGENTPHONE_WEBHOOK_SECRET: z.string().optional(),
