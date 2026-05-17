@@ -21,6 +21,7 @@
  * JSON.parse, so signing stays byte-exact.
  */
 
+import { after } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { env } from "@/lib/env";
@@ -208,8 +209,13 @@ async function handleLiveWebhook(
 
     const existing = store.calls.get(callId);
     const lines: CallTranscriptLine[] = existing ? [...existing.transcript] : [];
+    // Dedupe against AgentPhone retries — identical (at, text) means the same
+    // chunk was redelivered after a webhook timeout. Don't double-append.
     if (transcript) {
-      lines.push({ at: startedAt, speaker: "caller", text: transcript });
+      const dup = lines.some((l) => l.at === startedAt && l.text === transcript);
+      if (!dup) {
+        lines.push({ at: startedAt, speaker: "caller", text: transcript });
+      }
     }
 
     const call: Call = {
@@ -245,6 +251,8 @@ async function handleLiveWebhook(
     const fromNumber = existing?.fromNumber ?? "unknown";
     const { jobId, person, property } = getOrCreateStubJob(callId, fromNumber);
 
+    // AgentPhone's call_ended transcript is the authoritative final version,
+    // so it replaces any partial lines accumulated from agent.message events.
     const lines: CallTranscriptLine[] = transcript.map((entry) => ({
       at: entry.timestamp ?? endedAt,
       speaker: entry.role === "agent" ? "agent" : "caller",
@@ -265,16 +273,27 @@ async function handleLiveWebhook(
       summary,
       jobId,
     };
+    // Idempotency: a webhook retry of call_ended must not re-dial contractors.
+    // Once we've already promoted the call to "completed" and fired runAgent,
+    // a second call_ended is a no-op (still 200 so AgentPhone stops retrying).
+    const alreadyTriggered = existing?.status === "completed";
     store.upsertCall(call);
 
-    // Fire-and-forget: AgentPhone retries any response slower than 30s, and
-    // runAgent dials contractors (potentially much longer). The orchestrator
-    // is responsible for its own error logging via appendEvent.
-    void runAgent({ callId }).catch((err) => {
-      console.error(`[runAgent] failed for ${callId}:`, err);
-    });
+    if (!alreadyTriggered) {
+      // Run after the response — `after()` keeps the work alive past the
+      // Response resolution on serverless. Local dev keeps the process up
+      // either way. AgentPhone retries any response slower than 30s, and
+      // runAgent dials contractors (potentially much longer).
+      after(async () => {
+        try {
+          await runAgent({ callId });
+        } catch (err) {
+          console.error(`[runAgent] failed for ${callId}:`, err);
+        }
+      });
+    }
 
-    return Response.json({ ok: true, jobId, callId, queued: true });
+    return Response.json({ ok: true, jobId, callId, queued: !alreadyTriggered });
   }
 
   // Unknown event — ack with 202 so AgentPhone doesn't retry.
