@@ -88,20 +88,33 @@ export const agentphone: AgentPhoneClient = {
   },
 
   async placeOutboundCall(input) {
-    const agentId = env.AGENTPHONE_AGENT_ID;
+    // Outbound uses the dedicated CONTRACTOR agent — different system prompt
+    // (we're the requestor, not the responder). Fall back to the triage agent
+    // only if the contractor one isn't provisioned yet, so demos don't break.
+    const agentId =
+      env.AGENTPHONE_CONTRACTOR_AGENT_ID ?? env.AGENTPHONE_AGENT_ID;
     if (!agentId) {
       throw new IntegrationError(
         "agentphone",
-        "AGENTPHONE_AGENT_ID is not set — run scripts/provision-agentphone.ts to create the triage agent first.",
+        "Neither AGENTPHONE_CONTRACTOR_AGENT_ID nor AGENTPHONE_AGENT_ID is set — run scripts/provision-agentphone.ts first.",
       );
     }
     // SDK return type shifts between versions; cast at the boundary only.
-    const result = (await sdk().calls.createOutboundCall({
+    // conversationState is forwarded to the agent verbatim so the dispatch
+    // prompt can read negotiation context (target, walk-away, comps, history).
+    const payload: Record<string, unknown> = {
       agentId,
       toNumber: input.toNumber,
       initialGreeting: input.script.slice(0, 240),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)) as { id?: string; callId?: string };
+    };
+    if (input.negotiationContext) {
+      payload.conversationState = input.negotiationContext;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = (await sdk().calls.createOutboundCall(payload as any)) as {
+      id?: string;
+      callId?: string;
+    };
     const callId = result.callId ?? result.id;
     if (!callId) {
       throw new IntegrationError("agentphone", "createOutboundCall returned no call id");

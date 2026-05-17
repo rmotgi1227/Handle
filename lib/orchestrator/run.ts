@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { store } from "@/lib/store/memory";
 import { agentphone } from "@/lib/integrations/agentphone";
+import type { NegotiationContext } from "@/lib/integrations/agentphone";
 import { gemini } from "@/lib/integrations/gemini";
 import { supermemory } from "@/lib/integrations/supermemory";
 import { browseruse } from "@/lib/integrations/browseruse";
@@ -8,6 +9,8 @@ import { moss } from "@/lib/integrations/moss";
 import type {
   Contractor,
   ContractorCallOutcome,
+  Job,
+  JobUrgency,
   Trade,
 } from "@/lib/types";
 
@@ -64,6 +67,214 @@ async function buildRecallContext(input: BuildRecallContextInput): Promise<Recal
     ownerPreferences: owner,
     contractorHits: contractorRes.hits,
     knowledgeHits: knowledgeRes.hits,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// buildNegotiationContext — assemble per-call dispatch brief for the agent
+// ---------------------------------------------------------------------------
+//
+// The contractor-dispatch agent reads `conversationState` to negotiate with
+// real numbers: target/walk-away derived from past-job prices for this trade,
+// competitor anchors named in the past-job recall, and known history with
+// THIS contractor. All optional fields fall back to trade-typical defaults
+// when recall is thin (cold-start property, brand-new contractor).
+
+const TRADE_DEFAULTS: Record<Trade, { targetCents: number; walkAwayCents: number; marketContext: string }> = {
+  plumbing:     { targetCents: 18000, walkAwayCents: 28000, marketContext: "SF plumbing routine calls $150-$250; emergencies $200-$400." },
+  electrical:   { targetCents: 22000, walkAwayCents: 40000, marketContext: "SF electrical typically $200-$350 routine; panel work $400-$800." },
+  hvac:         { targetCents: 25000, walkAwayCents: 45000, marketContext: "SF HVAC service calls $200-$300; capacitor / minor parts +$50-$150." },
+  appliance:    { targetCents: 17500, walkAwayCents: 30000, marketContext: "SF appliance repair $150-$250 typical; parts can push over $300." },
+  locksmith:    { targetCents: 14000, walkAwayCents: 22500, marketContext: "SF lockouts $100-$200; rekey work $150-$250." },
+  pest_control: { targetCents: 18000, walkAwayCents: 35000, marketContext: "SF pest control initial $150-$300; recurring lower." },
+  cleaning:     { targetCents: 20000, walkAwayCents: 40000, marketContext: "SF deep cleans $200-$400 depending on unit size." },
+  general:      { targetCents: 15000, walkAwayCents: 30000, marketContext: "SF handyman $100-$200/visit for routine, more for multi-task days." },
+  roofing:      { targetCents: 35000, walkAwayCents: 75000, marketContext: "SF roofing leaks $300-$700; full inspection extra." },
+  landscaping:  { targetCents: 15000, walkAwayCents: 30000, marketContext: "SF landscaping $150-$300/visit routine maintenance." },
+};
+
+interface PastJobSummary {
+  contractorName: string;
+  amountCents: number;
+  whenAgo: string;
+  text: string;
+}
+
+/** Pull a dollar amount out of a memory text. "$215" → 21500 cents. */
+function extractAmountCents(text: string): number | null {
+  const m = text.match(/\$\s?(\d{2,5})(?:\.(\d{2}))?/);
+  if (!m) return null;
+  const dollars = Number.parseInt(m[1], 10);
+  const cents = m[2] ? Number.parseInt(m[2], 10) : 0;
+  return dollars * 100 + cents;
+}
+
+/** Pull a contractor name from "resolved by <Name> on YYYY-MM-DD" — seed-shape. */
+function extractContractorName(text: string): string | null {
+  const m = text.match(/resolved by ([A-Z][\w& '-]+?)(?: on |,|\.)/);
+  return m ? m[1].trim() : null;
+}
+
+/** Pull a date and turn it into a relative "ago" string. */
+function extractWhenAgo(text: string, now: Date = new Date()): string {
+  const m = text.match(/on (\d{4}-\d{2}-\d{2})/);
+  if (!m) return "recently";
+  const then = new Date(m[1]);
+  const days = Math.round((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "today";
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+  if (days < 30) return `${Math.round(days / 7)} week${Math.round(days / 7) === 1 ? "" : "s"} ago`;
+  if (days < 365) return `${Math.round(days / 30)} month${Math.round(days / 30) === 1 ? "" : "s"} ago`;
+  return `${Math.round(days / 365)} year${Math.round(days / 365) === 1 ? "" : "s"} ago`;
+}
+
+function summarizePastJobs(memories: { text: string }[]): PastJobSummary[] {
+  return memories
+    .map((m) => {
+      const amount = extractAmountCents(m.text);
+      const name = extractContractorName(m.text);
+      if (amount === null || !name) return null;
+      return {
+        contractorName: name,
+        amountCents: amount,
+        whenAgo: extractWhenAgo(m.text),
+        text: m.text,
+      };
+    })
+    .filter((x): x is PastJobSummary => x !== null);
+}
+
+interface NegotiationBoundsInput {
+  trade: Trade;
+  urgency: JobUrgency;
+  pastJobs: PastJobSummary[];
+}
+
+/**
+ * Derive target + walk-away from past-job prices for this trade. Median →
+ * target; +60% buffer → walk-away. Bumps for emergency urgency (we'll pay
+ * a premium when the unit is actively flooding). Falls back to trade
+ * defaults when there are <2 historical comps.
+ */
+function deriveBounds({ trade, urgency, pastJobs }: NegotiationBoundsInput): {
+  targetCents: number;
+  walkAwayCents: number;
+} {
+  if (pastJobs.length < 2) {
+    const d = TRADE_DEFAULTS[trade];
+    const bump = urgency === "emergency" ? 1.35 : urgency === "urgent" ? 1.1 : 1;
+    return {
+      targetCents: Math.round(d.targetCents * bump),
+      walkAwayCents: Math.round(d.walkAwayCents * bump),
+    };
+  }
+  const sorted = [...pastJobs].map((p) => p.amountCents).sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const bump = urgency === "emergency" ? 1.35 : urgency === "urgent" ? 1.1 : 1;
+  return {
+    targetCents: Math.round(median * bump),
+    walkAwayCents: Math.round(median * 1.6 * bump),
+  };
+}
+
+interface BuildNegotiationContextInput {
+  job: Job;
+  contractor: Contractor;
+  property: { address: string; unit?: string } | undefined;
+  recall: RecallContext;
+}
+
+/**
+ * Builds the dispatch brief handed to the contractor-dispatch agent for one
+ * specific contractor. Anchors come from past-job prices for the same
+ * trade (excluding the row that names this contractor — we don't anchor
+ * against their own prior work). History line names this contractor's
+ * past job count + avg price if any.
+ */
+export function buildNegotiationContext(
+  input: BuildNegotiationContextInput,
+): NegotiationContext {
+  const { job, contractor, property, recall } = input;
+
+  const pastSummaries = summarizePastJobs(recall.pastJobs);
+  const tradeHistory = pastSummaries.filter((p) =>
+    new RegExp(`\\b${job.trade}\\b`, "i").test(p.text),
+  );
+  const tradeHistoryForBounds = tradeHistory.length > 0 ? tradeHistory : pastSummaries;
+  const bounds = deriveBounds({
+    trade: job.trade,
+    urgency: job.urgency,
+    pastJobs: tradeHistoryForBounds,
+  });
+
+  // Competitor anchors: same-trade past jobs from OTHER contractors only.
+  const competitorAnchors = tradeHistory
+    .filter((p) => p.contractorName.toLowerCase() !== contractor.name.toLowerCase())
+    .slice(0, 3)
+    .map((p) => ({
+      contractorName: p.contractorName,
+      amountCents: p.amountCents,
+      whenAgo: p.whenAgo,
+    }));
+
+  // History with THIS contractor.
+  const ownPast = pastSummaries.filter(
+    (p) => p.contractorName.toLowerCase() === contractor.name.toLowerCase(),
+  );
+  let historyLine: string | undefined;
+  if (ownPast.length > 0) {
+    const avg = Math.round(
+      ownPast.reduce((s, p) => s + p.amountCents, 0) / ownPast.length,
+    );
+    historyLine =
+      `We've dispatched ${contractor.name} ${ownPast.length} time${ownPast.length === 1 ? "" : "s"} before — ` +
+      `average $${(avg / 100).toFixed(0)}. Most recent: ${ownPast[0].whenAgo}.`;
+  } else if (contractor.rating !== undefined) {
+    historyLine = `No prior jobs with ${contractor.name} on file. Public rating ${contractor.rating}/5.`;
+  }
+
+  const knowledgeText = recall.knowledgeHits
+    .slice(0, 2)
+    .map((k) => k.text)
+    .join(" ");
+  const ownerPrefText = recall.ownerPreferences
+    .slice(0, 1)
+    .map((o) => o.text)
+    .join(" ");
+  const marketContext = [
+    TRADE_DEFAULTS[job.trade].marketContext,
+    knowledgeText,
+    ownerPrefText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const timeline =
+    job.urgency === "emergency"
+      ? "Within the hour. Tenant is on site now and damage is actively occurring."
+      : job.urgency === "urgent"
+        ? "Today if at all possible — first half of tomorrow is the absolute latest."
+        : "In the next day or two — let them pick a reasonable window.";
+
+  return {
+    job: {
+      trade: job.trade,
+      urgency: job.urgency,
+      address: property?.address ?? "(address pending)",
+      unit: property?.unit,
+      description: job.description,
+    },
+    pricing: {
+      targetCents: bounds.targetCents,
+      walkAwayCents: bounds.walkAwayCents,
+      marketContext,
+      competitorAnchors,
+    },
+    contractor: {
+      name: contractor.name,
+      history: historyLine,
+    },
+    timeline,
   };
 }
 
@@ -187,6 +398,10 @@ export async function findContractorsForJob(
 export interface DialContractorInput {
   jobId: string;
   contractorId: string;
+  /** Optional dispatch brief — anchors, target/walk-away, history — passed
+   * verbatim to the contractor-dispatch agent. When omitted, the agent
+   * negotiates blind from the system prompt + script alone. */
+  negotiationContext?: NegotiationContext;
 }
 
 export interface DialContractorResult {
@@ -220,13 +435,20 @@ export async function dialContractorForJob(
     toNumber: contractor.phone,
     script,
     metadata: { jobId, contractorId },
+    negotiationContext: input.negotiationContext,
   });
 
   store.appendEvent({
     jobId,
     kind: "contractor_dial_started",
     title: `Dialing ${contractor.name}`,
-    data: { contractorId, contractorCallId },
+    detail: input.negotiationContext
+      ? `target $${(input.negotiationContext.pricing.targetCents / 100).toFixed(0)} · walk-away $${(input.negotiationContext.pricing.walkAwayCents / 100).toFixed(0)}` +
+        (input.negotiationContext.pricing.competitorAnchors?.length
+          ? ` · anchors: ${input.negotiationContext.pricing.competitorAnchors.map((a) => `${a.contractorName} $${(a.amountCents / 100).toFixed(0)}`).join(", ")}`
+          : "")
+      : undefined,
+    data: { contractorId, contractorCallId, negotiation: input.negotiationContext },
   });
 
   const outcome = simulateDialOutcome(contractorId);
@@ -366,14 +588,27 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
   // never blocks a 3-second accept.
   const top = contractorIds.slice(0, 3);
   type Winner = { contractorId: string; result: DialContractorResult };
-  const dialPromises = top.map((contractorId) =>
-    dialContractorForJob({ jobId: job.id, contractorId }).then((result) => {
-      if (result.outcome !== "accepted_job") {
-        throw new Error("not_accepted"); // makes Promise.any skip
-      }
-      return { contractorId, result } satisfies Winner;
-    }),
-  );
+  const dialPromises = top.map((contractorId) => {
+    const contractor = store.contractors.get(contractorId);
+    const negotiationContext = contractor
+      ? buildNegotiationContext({
+          job,
+          contractor,
+          property: property
+            ? { address: property.address, unit: property.unit }
+            : undefined,
+          recall: ctx,
+        })
+      : undefined;
+    return dialContractorForJob({ jobId: job.id, contractorId, negotiationContext }).then(
+      (result) => {
+        if (result.outcome !== "accepted_job") {
+          throw new Error("not_accepted"); // makes Promise.any skip
+        }
+        return { contractorId, result } satisfies Winner;
+      },
+    );
+  });
 
   let winner: Winner | null = null;
   try {

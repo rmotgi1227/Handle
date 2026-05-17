@@ -5,6 +5,10 @@ import { supermemory } from "@/lib/integrations/supermemory";
 let seeded = false;
 
 const SEED_CONTRACTORS = [
+  // Real test contractor for end-to-end live dial testing — rings Nicolas's
+  // test line. Listed first so it's always in the top-3 dial pool for any
+  // trade Gemini classifies a call into.
+  { name: "Live Test Plumber", phone: "+16198974800", trades: ["plumbing", "electrical", "hvac", "appliance", "general"], city: "San Francisco", rating: 5.0, specialties: ["live demo", "kitchen sink", "leak", "lockout", "AC repair", "no power"] },
   { name: "AcmePlumb", phone: "+14155550101", trades: ["plumbing"], city: "San Francisco", rating: 4.9, specialties: ["leak", "kitchen sink", "p-trap", "emergency 24h", "garbage disposal"] },
   { name: "Bay Drain Pros", phone: "+14155550102", trades: ["plumbing"], city: "San Francisco", rating: 4.7, specialties: ["drain cleaning", "hydro jet", "sewer line"] },
   { name: "Mission Plumbing & Heating", phone: "+14155550103", trades: ["plumbing", "hvac"], city: "San Francisco", rating: 4.8, specialties: ["boiler", "water heater", "victorian old plumbing"] },
