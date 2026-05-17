@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@inferedge/moss": "1.0.0-beta.8",
     "agentphone": "^1.0.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
