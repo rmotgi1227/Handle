@@ -29,10 +29,12 @@ export function verifyAgentPhoneWebhook(input: VerifyInput): VerifyResult {
 
   const signed = `${input.timestamp}.${input.rawBody}`;
   const expected = createHmac("sha256", input.secret).update(signed).digest("hex");
-  const provided = input.signature.startsWith("sha256=")
-    ? input.signature.slice("sha256=".length)
-    : input.signature;
+  // Some proxies pad or upcase the prefix — be tolerant.
+  const provided = input.signature.trim().replace(/^sha256=/i, "");
 
+  if (!/^[0-9a-f]+$/i.test(provided)) {
+    return { ok: false, reason: "malformed signature (non-hex characters)" };
+  }
   if (provided.length !== expected.length) {
     return { ok: false, reason: "signature length mismatch" };
   }

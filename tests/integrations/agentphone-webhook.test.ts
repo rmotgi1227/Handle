@@ -59,4 +59,43 @@ describe("verifyAgentPhoneWebhook", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toMatch(/secret/i);
   });
+
+  it("accepts a raw hex signature without the sha256= prefix", () => {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const body = '{"event":"agent.message"}';
+    const fullSig = sign(ts, body); // "sha256=<hex>"
+    const rawHex = fullSig.slice("sha256=".length);
+    const result = verifyAgentPhoneWebhook({
+      rawBody: body,
+      signature: rawHex,
+      timestamp: ts,
+      secret: SECRET,
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a future-dated timestamp beyond the window", () => {
+    const ts = String(Math.floor(Date.now() / 1000) + 400);
+    const body = '{"event":"agent.message"}';
+    const result = verifyAgentPhoneWebhook({
+      rawBody: body,
+      signature: sign(ts, body),
+      timestamp: ts,
+      secret: SECRET,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/timestamp/i);
+  });
+
+  it("rejects a non-hex signature with a clear malformed message", () => {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const result = verifyAgentPhoneWebhook({
+      rawBody: "{}",
+      signature: "sha256=ZZZnot_hex_at_all",
+      timestamp: ts,
+      secret: SECRET,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/malformed/i);
+  });
 });
