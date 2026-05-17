@@ -129,4 +129,19 @@ export const gemini: GeminiClient = {
     const titles = ordered.map((e) => `${e.kind}: ${e.title}`).join(" → ");
     return { summary: `Timeline so far — ${titles}.` };
   },
+
+  async analyzeMedia(_input) {
+    return {
+      description:
+        "Burst copper pipe joint visible under kitchen sink, approximately 2 inches of standing water on cabinet floor, water main shutoff handle visible at left of frame.",
+      severity: "emergency" as const,
+    };
+  },
+
+  async generateVoiceResponse({ userMessage }) {
+    if (userMessage.toLowerCase().includes("photo") || userMessage.toLowerCase().includes("picture")) {
+      return { text: "Thanks for sending that. I can see the issue clearly now. Let me dispatch the right contractor for you right away." };
+    }
+    return { text: "I understand. Can you describe what you're seeing, or better yet, text a photo to this number so I can assess the damage accurately?" };
+  },
 };

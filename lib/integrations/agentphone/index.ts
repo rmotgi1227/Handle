@@ -30,6 +30,13 @@ export interface AgentPhoneClient {
      */
     negotiationContext?: NegotiationContext;
   }): Promise<{ callId: string }>;
+  /** Parse the incoming AgentPhone voice webhook for a turn-by-turn voice exchange. */
+  parseVoiceWebhook(req: Request): Promise<{
+    callId: string;
+    fromNumber: string;
+    transcript: string;
+    recentHistory: { role: "user" | "model"; text: string }[];
+  }>;
 }
 
 /**

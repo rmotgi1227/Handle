@@ -2,19 +2,10 @@ import { Check, Minus } from "lucide-react";
 import { store } from "@/lib/store/memory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
-type VendorRow = {
-  name: string;
-  envKeys: string[];
-  vendorKey: string;
-};
+type VendorRow = { name: string; envKeys: string[]; vendorKey: string };
 
 const vendors: VendorRow[] = [
   { name: "AgentPhone", vendorKey: "agentphone", envKeys: ["AGENTPHONE_API_KEY", "AGENTPHONE_NUMBER"] },
@@ -37,75 +28,69 @@ export default function SettingsPage() {
   const people = Array.from(store.people.values());
   const jobs = store.listJobs();
   const activeStatuses = new Set([
-    "triaging",
-    "sourcing_contractor",
-    "scheduled",
-    "in_progress",
-    "awaiting_survey",
-    "awaiting_payment",
+    "triaging", "sourcing_contractor", "scheduled",
+    "in_progress", "awaiting_survey", "awaiting_payment",
   ]);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-black tracking-tight text-[#15161A]">Settings</h1>
+        <p className="mt-1 text-sm font-medium text-[#6B7070]">
           Integration modes and your property roster.
         </p>
       </div>
 
       <Tabs defaultValue="integrations">
-        <TabsList>
+        <TabsList className="bg-[#EEEBE4]">
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="properties">Properties</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="integrations">
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <TabsContent value="integrations" className="mt-4">
+          <div
+            className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+            style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+          >
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Env vars</TableHead>
+                <TableRow className="border-[#E8E3DA] bg-[#F6F4EF]">
+                  <TableHead className="font-bold uppercase tracking-[0.1em] text-[#9AA0A0] text-xs">Vendor</TableHead>
+                  <TableHead className="font-bold uppercase tracking-[0.1em] text-[#9AA0A0] text-xs">Mode</TableHead>
+                  <TableHead className="font-bold uppercase tracking-[0.1em] text-[#9AA0A0] text-xs">Env vars</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {vendors.map((v) => {
                   const mode = resolveMode(v.vendorKey);
                   return (
-                    <TableRow key={v.vendorKey}>
-                      <TableCell className="font-medium tracking-tight">
-                        {v.name}
-                      </TableCell>
+                    <TableRow key={v.vendorKey} className="border-[#E8E3DA]">
+                      <TableCell className="font-bold text-[#15161A]">{v.name}</TableCell>
                       <TableCell>
-                        <span
-                          className={
-                            mode === "live"
-                              ? "inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-2.5 py-0.5 text-xs font-medium text-white"
-                              : "inline-flex items-center gap-1.5 rounded-full border border-dashed border-zinc-300 px-2.5 py-0.5 text-xs font-medium text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-                          }
-                        >
-                          {mode}
-                        </span>
+                        {mode === "live" ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#15161A] px-2.5 py-1 text-xs font-bold text-[#F6F4EF]">
+                            <span className="size-1.5 rounded-full bg-[#3B5A78]" />
+                            live
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[#E8E3DA] px-2.5 py-1 text-xs font-semibold text-[#9AA0A0]">
+                            <span className="size-1.5 rounded-full border border-[#9AA0A0]" />
+                            mock
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           {v.envKeys.map((key) => {
                             const present = Boolean(process.env[key]);
                             return (
-                              <div
-                                key={key}
-                                className="flex items-center gap-2 text-xs"
-                              >
+                              <div key={key} className="flex items-center gap-2 text-xs">
                                 {present ? (
-                                  <Check className="size-3.5 text-zinc-900 dark:text-zinc-100" />
+                                  <Check className="size-3.5 text-[#3B5A78]" />
                                 ) : (
-                                  <Minus className="size-3.5 text-zinc-400" />
+                                  <Minus className="size-3.5 text-[#D5CFC6]" />
                                 )}
-                                <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                                  {key}
-                                </span>
+                                <span className="font-mono font-medium text-[#6B7070]">{key}</span>
                               </div>
                             );
                           })}
@@ -117,22 +102,23 @@ export default function SettingsPage() {
               </TableBody>
             </Table>
           </div>
-          <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-            Set <span className="font-mono">INTEGRATION_MODE=live</span> to flip
-            all vendors, or{" "}
-            <span className="font-mono">&lt;VENDOR&gt;_MODE=live</span> for a
-            single one. Mock mode requires no env vars.
+          <p className="mt-3 text-xs font-medium text-[#9AA0A0]">
+            Set <span className="font-mono font-bold text-[#6B7070]">INTEGRATION_MODE=live</span> to flip all vendors,
+            or <span className="font-mono font-bold text-[#6B7070]">&lt;VENDOR&gt;_MODE=live</span> for a single one.
           </p>
         </TabsContent>
 
-        <TabsContent value="properties">
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <TabsContent value="properties" className="mt-4">
+          <div
+            className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+            style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+          >
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Managed by</TableHead>
-                  <TableHead className="text-right">Active jobs</TableHead>
+                <TableRow className="border-[#E8E3DA] bg-[#F6F4EF]">
+                  <TableHead className="font-bold uppercase tracking-[0.1em] text-[#9AA0A0] text-xs">Address</TableHead>
+                  <TableHead className="font-bold uppercase tracking-[0.1em] text-[#9AA0A0] text-xs">Managed by</TableHead>
+                  <TableHead className="text-right font-bold uppercase tracking-[0.1em] text-[#9AA0A0] text-xs">Active jobs</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,21 +128,15 @@ export default function SettingsPage() {
                     (j) => j.propertyId === p.id && activeStatuses.has(j.status),
                   ).length;
                   return (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium tracking-tight">
+                    <TableRow key={p.id} className="border-[#E8E3DA]">
+                      <TableCell className="font-bold text-[#15161A]">
                         {p.address}
                         {p.unit ? (
-                          <span className="text-zinc-500 dark:text-zinc-400">
-                            {" · "}Unit {p.unit}
-                          </span>
+                          <span className="font-medium text-[#9AA0A0]"> · Unit {p.unit}</span>
                         ) : null}
                       </TableCell>
-                      <TableCell className="text-zinc-700 dark:text-zinc-300">
-                        {manager?.name ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {active}
-                      </TableCell>
+                      <TableCell className="font-medium text-[#6B7070]">{manager?.name ?? "—"}</TableCell>
+                      <TableCell className="text-right font-bold tabular-nums text-[#15161A]">{active}</TableCell>
                     </TableRow>
                   );
                 })}

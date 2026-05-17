@@ -7,6 +7,8 @@ export type JobStatus =
   | "in_progress"
   | "awaiting_survey"
   | "awaiting_payment"
+  | "payment_authorized"
+  | "paid"
   | "completed"
   | "cancelled";
 
@@ -28,8 +30,15 @@ export interface Job {
   scheduledFor?: string;
   totalCostCents?: number;
   callIds: string[];
+  visualContext?: {
+    description: string;
+    severity: "emergency" | "urgent" | "standard";
+    guidelines: { id: string; text: string; score: number }[];
+    mediaUrl: string;
+  };
   satisfactionScore?: number;
   satisfactionFeedback?: string;
+  paymentTxnHash?: string;
 }
 
 export type JobSummary = Pick<

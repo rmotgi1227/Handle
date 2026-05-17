@@ -90,4 +90,19 @@ export const agentphone: AgentPhoneClient = {
     const seed = `${input.toNumber}|${outboundSeq}`;
     return { callId: callIdFor("ocall", seed) };
   },
+
+  async parseVoiceWebhook(req) {
+    let body: Record<string, unknown> = {};
+    try { body = (await req.clone().json()) as Record<string, unknown>; } catch { body = {}; }
+    const fromNumber = typeof body.fromNumber === "string" ? body.fromNumber : "+14155550100";
+    const transcript = typeof body.transcript === "string" ? body.transcript : "My sink is leaking badly.";
+    const callId = callIdFor("call", `${fromNumber}|${FIXED_NOW}`);
+    const history = Array.isArray(body.recentHistory)
+      ? (body.recentHistory as { role: string; text: string }[]).map(h => ({
+          role: (h.role === "model" ? "model" : "user") as "user" | "model",
+          text: String(h.text ?? ""),
+        }))
+      : [];
+    return { callId, fromNumber, transcript, recentHistory: history };
+  },
 };

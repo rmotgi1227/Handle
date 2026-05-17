@@ -12,10 +12,6 @@ import type { SupermemoryClient } from "./index";
  *
  * Auth: Authorization: Bearer ${SUPERMEMORY_API_KEY}
  * Optional: x-project-id: ${SUPERMEMORY_PROJECT_ID}
- *
- * The SupermemoryClient interface returns { memories: [{ id, text, score }] }
- * and { id } — we adapt the API's response (documentId + chunks[]) into that
- * contract so callers stay decoupled from the wire shape.
  */
 
 const BASE_URL = "https://api.supermemory.ai";
@@ -76,6 +72,7 @@ export const supermemory: SupermemoryClient = {
         method: "POST",
         headers: authHeaders(apiKey, projectId),
         body: JSON.stringify({ q: query, limit: topK ?? 3 }),
+        signal: AbortSignal.timeout(10_000),
       });
     } catch (cause) {
       throw new IntegrationError("supermemory", "recall network error", cause);
@@ -116,6 +113,7 @@ export const supermemory: SupermemoryClient = {
           ...(tags ? { containerTags: tags } : {}),
           ...(metadata ? { metadata } : {}),
         }),
+        signal: AbortSignal.timeout(10_000),
       });
     } catch (cause) {
       throw new IntegrationError("supermemory", "remember network error", cause);

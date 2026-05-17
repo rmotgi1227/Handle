@@ -2,23 +2,12 @@
 
 import Link from "next/link";
 import {
-  Droplet,
-  Zap,
-  Wind,
-  Wrench,
-  Key,
-  Bug,
-  Sparkles,
-  Hammer,
-  Home,
-  Trees,
-  Loader2,
+  Droplet, Zap, Wind, Wrench, Key, Bug, Sparkles, Hammer, Home, Trees, Loader2,
 } from "lucide-react";
 import { usePollingFetch } from "@/hooks/use-polling-fetch";
 import { UrgencyPill } from "./urgency-pill";
 import { StatusPill } from "./status-pill";
 import type { Job, JobUrgency, Trade, Contractor, Property } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 type JobsResponse = { jobs: Job[] };
 
@@ -62,26 +51,17 @@ export function JobList({
   initialJobs: Job[];
   contractors: Contractor[];
   properties: Property[];
-  /** Restrict polled data to these statuses (after the polling refresh
-   * replaces initialJobs with all jobs). Lets one component back both an
-   * "Active" and "Closed" section on /dashboard/jobs without one eating
-   * the other. */
   filterStatuses?: Job["status"][];
 }) {
-  // Only `/api/jobs` is part of the v1 API surface; contractors and
-  // properties are stable enough to ship once at first paint. Re-renders
-  // come for free as `/api/jobs` ticks.
   const jobsRes = usePollingFetch<JobsResponse>("/api/jobs", 5000);
 
   const allJobs = jobsRes.data?.jobs ?? initialJobs;
   const jobs = filterStatuses
     ? allJobs.filter((j) => filterStatuses.includes(j.status))
     : allJobs;
-  const contractorList = contractors;
-  const propertyList = properties;
 
-  const contractorById = new Map(contractorList.map((c) => [c.id, c]));
-  const propertyById = new Map(propertyList.map((p) => [p.id, p]));
+  const contractorById = new Map(contractors.map((c) => [c.id, c]));
+  const propertyById = new Map(properties.map((p) => [p.id, p]));
 
   const sorted = [...jobs].sort((a, b) => {
     const ru = urgencyRank[a.urgency] - urgencyRank[b.urgency];
@@ -91,8 +71,8 @@ export function JobList({
 
   if (sorted.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-300 p-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-        No active jobs. New tenant calls will appear here within seconds.
+      <div className="rounded-2xl border border-dashed border-[#E8E3DA] p-10 text-center text-sm font-medium text-[#9AA0A0]">
+        No jobs here. New tenant calls will appear within seconds.
       </div>
     );
   }
@@ -113,20 +93,19 @@ export function JobList({
           <Link
             key={job.id}
             href={`/dashboard/jobs/${job.id}`}
-            className={cn(
-              "group flex items-start gap-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700",
-            )}
+            className="group flex items-start gap-4 rounded-2xl border border-[#E8E3DA] bg-white p-5 transition-all hover:-translate-y-px hover:border-[#D5CFC6]"
+            style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
           >
-            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
-              <Icon className="size-4 text-zinc-700 dark:text-zinc-300" />
+            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#E8E3DA] bg-[#F6F4EF]">
+              <Icon className="size-4 text-[#3B5A78]" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
+                  <div className="truncate text-sm font-bold tracking-tight text-[#15161A]">
                     {job.title}
                   </div>
-                  <div className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="mt-0.5 truncate text-xs font-medium text-[#9AA0A0]">
                     {property
                       ? `${property.address}${property.unit ? ` · Unit ${property.unit}` : ""}`
                       : "Unknown property"}
@@ -137,20 +116,18 @@ export function JobList({
                   <StatusPill status={job.status} />
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+              <div className="mt-3 flex items-center gap-3 text-xs font-medium text-[#9AA0A0]">
                 {sourcing ? (
-                  <span className="inline-flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
+                  <span className="inline-flex items-center gap-1.5 text-[#3B5A78]">
                     <Loader2 className="size-3 animate-spin" />
                     Sourcing…
                   </span>
                 ) : contractor ? (
-                  <span className="truncate text-zinc-700 dark:text-zinc-200">
-                    {contractor.name}
-                  </span>
+                  <span className="truncate text-[#6B7070]">{contractor.name}</span>
                 ) : (
-                  <span className="text-zinc-400 dark:text-zinc-500">Unassigned</span>
+                  <span>Unassigned</span>
                 )}
-                <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                <span className="text-[#E8E3DA]">·</span>
                 <span className="tabular-nums">{relativeTime(job.createdAt)}</span>
               </div>
             </div>
