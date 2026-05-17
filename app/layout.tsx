@@ -3,11 +3,15 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { seedOnce } from "@/lib/store/seed";
 import { seedRetrievalOnce } from "@/lib/store/seed-retrieval";
+import { env } from "@/lib/env";
 
 seedOnce();
-void seedRetrievalOnce().catch((e) => {
-  console.warn("[layout] seedRetrievalOnce failed:", e);
-});
+// Supermemory.add() doesn't dedupe; cold-starts must NOT silently re-seed.
+if (env.SEED_ON_BOOT) {
+  void seedRetrievalOnce().catch((e) => {
+    console.warn("[layout] seedRetrievalOnce failed:", e);
+  });
+}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

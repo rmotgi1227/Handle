@@ -169,3 +169,38 @@ describe("agentmail mock", () => {
     expect(out).toMatchObject({ messageId: expect.any(String) });
   });
 });
+
+describe("gemini mock — analyzeMedia", () => {
+  it("returns description and severity", async () => {
+    const result = await gemini.analyzeMedia({
+      mediaUrl: "https://example.com/img.jpg",
+      mimeType: "image/jpeg",
+    });
+    expect(result).toMatchObject({
+      description: expect.any(String),
+      severity: expect.stringMatching(/^(emergency|urgent|standard)$/),
+    });
+    expect(result.description.length).toBeGreaterThan(10);
+  });
+});
+
+describe("agentphone mock — parseVoiceWebhook", () => {
+  it("returns required shape from a voice turn", async () => {
+    const req = new Request("http://localhost/api/calls/voice", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        fromNumber: "+14155551410",
+        transcript: "My kitchen sink is flooding.",
+        recentHistory: [],
+      }),
+    });
+    const out = await agentphone.parseVoiceWebhook(req);
+    expect(out).toMatchObject({
+      callId: expect.any(String),
+      fromNumber: expect.any(String),
+      transcript: expect.any(String),
+      recentHistory: expect.any(Array),
+    });
+  });
+});
