@@ -3,13 +3,21 @@ import { agentphone } from "@/lib/integrations/agentphone";
 import { gemini } from "@/lib/integrations/gemini";
 import { store } from "@/lib/store/memory";
 import { runAgent } from "@/lib/orchestrator/run";
+import { env } from "@/lib/env";
 
 const BodySchema = z.object({
   fromNumber: z.string().optional(),
   transcript: z.string().optional(),
   callId: z.string().optional(),
-  recentHistory: z.array(z.object({ role: z.string(), content: z.string() })).optional(),
+  recentHistory: z.array(z.object({ role: z.string(), text: z.string() })).optional(),
 }).passthrough();
+
+function verifyWebhookSecret(request: Request): boolean {
+  const secret = env.AGENTPHONE_WEBHOOK_SECRET;
+  if (!secret) return true; // not configured — allow in dev/mock mode
+  const sig = request.headers.get("x-agentphone-signature") ?? "";
+  return sig === secret;
+}
 
 const SYSTEM_CONTEXT = `You are a property management AI agent for a residential property management company.
 Your job: triage maintenance issues, collect information, and dispatch the right contractor.
@@ -18,6 +26,10 @@ Once you have enough information (description + optional photo), confirm you're 
 Never make up contractor names or ETAs — say "I'm arranging dispatch now."`;
 
 export async function POST(request: Request): Promise<Response> {
+  if (!verifyWebhookSecret(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const raw = await request.text();
   let parsed: z.infer<typeof BodySchema>;
   try {
@@ -26,7 +38,6 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  // Suppress unused variable warning — parsed is used to validate shape
   void parsed;
 
   const replay = new Request(request.url, {
@@ -64,8 +75,17 @@ Use this information in your response — acknowledge what you can see and confi
     userMessage: transcript,
   });
 
-  // If we have visual context and enough history, trigger dispatch in background
-  if (job?.visualContext && call && recentHistory.length >= 1) {
+  // Trigger dispatch once: only if visualContext is present AND job not already dispatched.
+  // Guards against firing runAgent on every subsequent voice turn.
+  const jobStatus = job?.status;
+  if (
+    job?.visualContext &&
+    call &&
+    jobStatus === "triaging" &&
+    recentHistory.length >= 1
+  ) {
+    // Mark as sourcing so concurrent turns skip this block
+    store.upsertJob({ id: job.id, status: "sourcing_contractor" });
     void runAgent({ callId: call.id }).catch(console.error);
   }
 

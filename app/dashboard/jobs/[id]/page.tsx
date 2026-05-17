@@ -134,12 +134,15 @@ export default async function JobDetailPage({
             Visual triage
           </summary>
           <div className="mt-2 space-y-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={job.visualContext.mediaUrl}
-              alt="Tenant photo"
-              className="max-h-48 rounded object-cover"
-            />
+            {/* Only render the image if the URL is a safe https:// URL */}
+            {job.visualContext.mediaUrl.startsWith("https://") && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={job.visualContext.mediaUrl}
+                alt="Tenant photo"
+                className="max-h-48 rounded object-cover"
+              />
+            )}
             <p className="text-zinc-600">{job.visualContext.description}</p>
             <p className="text-xs text-zinc-400">
               Severity: {job.visualContext.severity}

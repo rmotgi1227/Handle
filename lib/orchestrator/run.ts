@@ -231,9 +231,8 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
 
   // If the photo analysis flagged an emergency, let that take precedence over
   // whatever the transcript-only classification produced.
-  if (existingJob?.visualContext?.severity === "emergency") {
-    intent.urgency = "emergency";
-  }
+  const resolvedUrgency =
+    existingJob?.visualContext?.severity === "emergency" ? "emergency" : intent.urgency;
 
   // 3. Resolve property/reporter from the call.
   const property = call.propertyId ? store.properties.get(call.propertyId) : undefined;
@@ -250,7 +249,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     propertyId,
     reportedByPersonId: reporterId,
     status: "sourcing_contractor",
-    urgency: intent.urgency,
+    urgency: resolvedUrgency,
     trade: intent.trade,
     title: intent.title,
     description: intent.description,
@@ -261,7 +260,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
   store.appendEvent({
     jobId: job.id,
     kind: "intent_classified",
-    title: `Classified as ${intent.trade} · ${intent.urgency}`,
+    title: `Classified as ${intent.trade} · ${resolvedUrgency}`,
     detail: intent.description,
     data: { intent: intent.intent, confidence: intent.confidence },
   });

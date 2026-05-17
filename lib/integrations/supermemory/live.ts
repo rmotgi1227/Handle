@@ -7,10 +7,14 @@ const BASE = "https://api.supermemory.ai";
 
 function headers(): HeadersInit {
   const key = requireEnv("SUPERMEMORY_API_KEY");
-  return {
+  const h: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
   };
+  if (env.SUPERMEMORY_PROJECT_ID) {
+    h["x-project-id"] = env.SUPERMEMORY_PROJECT_ID;
+  }
+  return h;
 }
 
 async function apiFetch(path: string, init: RequestInit): Promise<unknown> {
@@ -66,11 +70,13 @@ export const supermemory: SupermemoryClient = {
     }
   },
 
-  async remember({ text }) {
+  async remember({ text, tags }) {
     try {
+      const body: Record<string, unknown> = { content: text };
+      if (tags && tags.length > 0) body.tags = tags;
       const raw = await apiFetch("/v3/memories", {
         method: "POST",
-        body: JSON.stringify({ content: text }),
+        body: JSON.stringify(body),
       });
       const parsed = RememberResultSchema.safeParse(raw);
       if (!parsed.success) {
