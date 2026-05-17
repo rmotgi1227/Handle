@@ -78,18 +78,24 @@ async function findOrCreateAgent(): Promise<string> {
 }
 
 async function attachNumber(agentId: string): Promise<void> {
-  await ap(`/v1/numbers/${TARGET_NUMBER_ID}`, {
-    method: "PATCH",
-    body: JSON.stringify({ agentId }),
+  // AgentPhone exposes attach as a sub-resource of the agent, not a PATCH
+  // on the number. The number's id goes in the body as `numberId` (camelCase).
+  await ap(`/v1/agents/${agentId}/numbers`, {
+    method: "POST",
+    body: JSON.stringify({ numberId: TARGET_NUMBER_ID }),
   });
   console.log(`✓ attached ${TARGET_NUMBER} to agent ${agentId}`);
 }
 
-async function registerWebhook(url: string): Promise<{ id: string; secret: string }> {
-  const r = await ap<{ id: string; secret: string }>("/v1/webhooks", {
-    method: "POST",
-    body: JSON.stringify({ url, contextLimit: 10, timeout: 30 }),
-  });
+async function registerWebhook(agentId: string, url: string): Promise<{ id: string; secret: string }> {
+  // Webhooks are per-agent, not account-wide.
+  const r = await ap<{ id: string; secret: string }>(
+    `/v1/agents/${agentId}/webhook`,
+    {
+      method: "POST",
+      body: JSON.stringify({ url, contextLimit: 10, timeout: 30 }),
+    },
+  );
   console.log(`✓ webhook registered: ${r.id}`);
   return r;
 }
@@ -97,7 +103,7 @@ async function registerWebhook(url: string): Promise<{ id: string; secret: strin
 async function main(): Promise<void> {
   const agentId = await findOrCreateAgent();
   await attachNumber(agentId);
-  const { secret } = await registerWebhook(webhookUrl);
+  const { secret } = await registerWebhook(agentId, webhookUrl);
 
   console.log("\n--- Paste these into .env.local (replace existing values) ---");
   console.log(`AGENTPHONE_AGENT_ID=${agentId}`);

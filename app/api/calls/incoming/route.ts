@@ -308,8 +308,8 @@ async function handleLiveWebhook(
 // ---------------------------------------------------------------------------
 
 async function handleMockPost(
-  request: Request,
-  rawBody: string,
+  _request: Request,
+  _rawBody: string,
   parsed: unknown,
 ): Promise<Response> {
   const body = MockBodySchema.safeParse(parsed);
@@ -320,17 +320,12 @@ async function handleMockPost(
     );
   }
 
-  // Hand the adapter a fresh Request so its `.clone().text()` still works
-  // after we've already consumed the body above.
-  const replay = new Request(request.url, {
-    method: request.method,
-    headers: request.headers,
-    body: rawBody.length > 0 ? rawBody : undefined,
-  });
-
-  const inbound = await agentphone.parseInboundWebhook(replay);
-  const fromNumber = body.data.fromNumber ?? inbound.fromNumber;
-  const callId = inbound.callId || `call_${nanoid(8)}`;
+  // Mock path is for curl/dev replay only — don't dispatch through the
+  // adapter (the live adapter's parseInboundWebhook expects an event-shaped
+  // body, not the curl shape). Generate a callId locally.
+  const fromNumber = body.data.fromNumber ?? "+14155550100";
+  const callId = `call_${nanoid(8)}`;
+  const startedAt = new Date().toISOString();
 
   const { jobId, person, property } = getOrCreateStubJob(callId, fromNumber);
 
@@ -348,12 +343,12 @@ async function handleMockPost(
   const transcript: CallTranscriptLine[] = body.data.transcript
     ? [
         {
-          at: inbound.startedAt,
+          at: startedAt,
           speaker: "agent",
           text: "Hi, you've reached the property line. What's going on?",
         },
         {
-          at: inbound.startedAt,
+          at: startedAt,
           speaker: "caller",
           text: body.data.transcript,
         },
@@ -367,7 +362,7 @@ async function handleMockPost(
     callerRole: person?.role,
     propertyId: property?.id,
     status: "in_progress",
-    startedAt: inbound.startedAt,
+    startedAt: startedAt,
     transcript,
     jobId,
   };
