@@ -1,0 +1,20 @@
+export function HandleFavicon({ size = 32 }: { size?: number }) {
+  const r = size * 0.218; // rx/ry for the rounded rect
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 128 128"
+      width={size}
+      height={size}
+      role="img"
+      aria-label="Handle"
+    >
+      <rect width="128" height="128" rx="28" ry="28" fill="#15161A" />
+      <path
+        fill="#F6F4EF"
+        d="M 20 14 L 40 14 L 40 60 C 40 38, 88 38, 88 60 L 88 110 L 68 110 L 68 76 C 68 60, 40 60, 40 76 L 40 110 L 20 110 Z"
+      />
+      <circle cx="89" cy="108" r="9" fill="#3B5A78" />
+    </svg>
+  );
+}
