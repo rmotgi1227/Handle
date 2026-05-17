@@ -25,9 +25,11 @@ export async function POST(): Promise<Response> {
   const prompt = buildTriagePrompt();
 
   try {
-    // SDK shape is loose across versions — cast at the boundary.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (sdk.agents as any).updateAgent(agentId, { systemPrompt: prompt });
+    // SDK takes a single object with agent_id (snake_case per OpenAPI).
+    await sdk.agents.updateAgent({
+      agent_id: agentId,
+      systemPrompt: prompt,
+    });
   } catch (err) {
     return Response.json(
       {
