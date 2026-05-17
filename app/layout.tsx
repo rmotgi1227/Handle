@@ -3,13 +3,21 @@ import { Nunito } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { seedOnce } from "@/lib/store/seed";
-import { seedRetrievalOnce } from "@/lib/store/seed-retrieval";
+import { env } from "@/lib/env";
 import { supermemory } from "@/lib/integrations/supermemory";
 
 seedOnce();
-void seedRetrievalOnce().catch((e) => {
-  console.warn("[layout] seedRetrievalOnce failed:", e);
-});
+// Supermemory.add() doesn't dedupe; cold-starts must NOT silently re-seed.
+// Dynamic import keeps Moss (and its onnxruntime native dep) out of the
+// per-route server bundles when SEED_ON_BOOT is off — otherwise Vercel
+// SSR pages 500 trying to load libonnxruntime.so.1.
+if (env.SEED_ON_BOOT) {
+  void import("@/lib/store/seed-retrieval")
+    .then((m) => m.seedRetrievalOnce())
+    .catch((e) => {
+      console.warn("[layout] seedRetrievalOnce failed:", e);
+    });
+}
 
 // Seed property management guidelines into Supermemory on boot.
 // Idempotent: only seeds if no guidelines exist yet.

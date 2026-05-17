@@ -99,39 +99,46 @@ export default function DashboardOverviewPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        <section className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-base font-semibold tracking-tight">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+        <section
+          className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+          style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+        >
+          <header className="flex items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
+            <h2 className="text-sm font-bold tracking-tight text-[#15161A]">
               Active jobs
             </h2>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="text-xs font-medium text-[#9AA0A0]">
               Sorted by urgency
             </span>
-          </div>
+          </header>
           <JobList
             initialJobs={jobs}
             contractors={contractors}
             properties={properties}
+            variant="row"
           />
         </section>
 
-        <section className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-base font-semibold tracking-tight">
+        <section
+          className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+          style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+        >
+          <header className="flex items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
+            <h2 className="text-sm font-bold tracking-tight text-[#15161A]">
               Recent calls
             </h2>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="text-xs font-medium text-[#9AA0A0]">
               Last {calls.length}
             </span>
-          </div>
-          <div className="flex flex-col gap-2">
+          </header>
+          <div className="flex flex-col divide-y divide-[#E8E3DA]">
             {calls.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-zinc-300 p-6 text-center text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              <div className="px-5 py-10 text-center text-xs font-medium text-[#9AA0A0]">
                 No recent calls.
               </div>
             ) : (
-              calls.map((c) => <LiveCallCard key={c.id} call={c} />)
+              calls.map((c) => <LiveCallCard key={c.id} call={c} variant="row" />)
             )}
           </div>
         </section>

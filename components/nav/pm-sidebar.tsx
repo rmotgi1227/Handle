@@ -8,7 +8,8 @@ import {
   LayoutGrid,
   Briefcase,
   Users,
-  Settings,
+  Home,
+  CreditCard,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,8 +25,9 @@ import {
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutGrid, exact: true },
   { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/dashboard/properties", label: "Properties", icon: Home },
   { href: "/dashboard/contractors", label: "Contractors", icon: Users },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
 ];
 
 export function PmSidebar() {

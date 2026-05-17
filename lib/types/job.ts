@@ -39,6 +39,8 @@ export interface Job {
   satisfactionScore?: number;
   satisfactionFeedback?: string;
   paymentTxnHash?: string;
+  ownerInvoiceId?: string;
+  ownerPaidAt?: string;
 }
 
 export type JobSummary = Pick<

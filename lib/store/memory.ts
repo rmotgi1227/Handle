@@ -7,6 +7,7 @@ import type {
   JobEvent,
   Person,
   Property,
+  Unit,
 } from "@/lib/types";
 
 /**
@@ -19,6 +20,7 @@ import type {
 class MemoryStore {
   people = new Map<string, Person>();
   properties = new Map<string, Property>();
+  units = new Map<string, Unit>();
   contractors = new Map<string, Contractor>();
   jobs = new Map<string, Job>();
   events = new Map<string, JobEvent>();
@@ -121,6 +123,22 @@ class MemoryStore {
   upsertProperty(p: Property): Property {
     this.properties.set(p.id, p);
     return p;
+  }
+
+  // --- Units (multi-tenant buildings) ---
+  upsertUnit(u: Unit): Unit {
+    this.units.set(u.id, u);
+    return u;
+  }
+
+  getUnit(id: string): Unit | undefined {
+    return this.units.get(id);
+  }
+
+  listUnitsForProperty(propertyId: string): Unit[] {
+    return Array.from(this.units.values())
+      .filter((u) => u.propertyId === propertyId)
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
   }
 }
 

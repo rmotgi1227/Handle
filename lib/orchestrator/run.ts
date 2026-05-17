@@ -402,6 +402,10 @@ export interface DialContractorInput {
    * verbatim to the contractor-dispatch agent. When omitted, the agent
    * negotiates blind from the system prompt + script alone. */
   negotiationContext?: NegotiationContext;
+  /** Optional retrieval context shared across all dials for this job —
+   * fed into the Gemini script draft so the spoken opener can reference
+   * prior history, owner prefs, or known issue patterns when relevant. */
+  recall?: RecallContext;
 }
 
 export interface DialContractorResult {
@@ -429,6 +433,13 @@ export async function dialContractorForJob(
     jobDescription: job.description,
     propertyAddress,
     urgency: job.urgency,
+    recall: input.recall
+      ? {
+          pastJobs: input.recall.pastJobs,
+          ownerPreferences: input.recall.ownerPreferences,
+          knowledgeHits: input.recall.knowledgeHits,
+        }
+      : undefined,
   });
 
   const { callId: contractorCallId } = await agentphone.placeOutboundCall({
@@ -660,7 +671,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
           recall: ctx,
         })
       : undefined;
-    return dialContractorForJob({ jobId: job.id, contractorId, negotiationContext }).then(
+    return dialContractorForJob({ jobId: job.id, contractorId, negotiationContext, recall: ctx }).then(
       (result) => {
         if (result.outcome !== "accepted_job") {
           throw new Error("not_accepted"); // makes Promise.any skip

@@ -16,18 +16,28 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hr / 24)}d ago`;
 }
 
-export function LiveCallCard({ call }: { call: Call }) {
+export function LiveCallCard({
+  call,
+  variant = "card",
+}: {
+  call: Call;
+  variant?: "card" | "row";
+}) {
   const live = call.status === "in_progress" || call.status === "ringing";
   const href = call.jobId ? `/dashboard/jobs/${call.jobId}` : "#";
+  const isRow = variant === "row";
 
   return (
     <Link
       href={href}
       className={cn(
-        "group flex items-start gap-3 rounded-2xl border border-[#E8E3DA] bg-white p-4 transition-all hover:-translate-y-px hover:border-[#D5CFC6]",
+        "group flex items-start gap-3 transition-all",
+        isRow
+          ? "px-5 py-4 hover:bg-[#FAF8F3]"
+          : "rounded-2xl border border-[#E8E3DA] bg-white p-4 hover:-translate-y-px hover:border-[#D5CFC6]",
         !call.jobId && "pointer-events-none",
       )}
-      style={{ boxShadow: "0 1px 4px rgba(21,22,26,0.04)" }}
+      style={isRow ? undefined : { boxShadow: "0 1px 4px rgba(21,22,26,0.04)" }}
     >
       <div className="mt-0.5 flex size-7 items-center justify-center rounded-full bg-[#EEF4F9] text-[#3B5A78]">
         <PhoneIncoming className="size-3.5" />

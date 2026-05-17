@@ -19,6 +19,8 @@ import {
   XCircle,
   BellOff,
   Camera,
+  CreditCard,
+  BadgeCheck,
 } from "lucide-react";
 import type { JobEvent, JobEventKind } from "@/lib/types";
 
@@ -43,6 +45,8 @@ const iconFor: Record<JobEventKind, typeof Phone> = {
   paid: DollarSign,
   note: StickyNote,
   visual_triage: Camera,
+  owner_billed: CreditCard,
+  owner_paid: BadgeCheck,
 };
 
 function relativeTime(iso: string): string {

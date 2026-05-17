@@ -17,6 +17,13 @@ export interface GeminiClient {
     jobDescription: string;
     propertyAddress: string;
     urgency: string;
+    /** Optional retrieval snippets — one will be woven into the script when
+     * it fits naturally. Each list is consulted in order; empty/missing is fine. */
+    recall?: {
+      pastJobs?: { text: string }[];
+      ownerPreferences?: { text: string }[];
+      knowledgeHits?: { text: string }[];
+    };
   }): Promise<{ script: string }>;
   summarizeJob(input: {
     events: { kind: string; title: string; at: string }[];
