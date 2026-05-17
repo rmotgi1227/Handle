@@ -5,7 +5,7 @@ import type { StripeClient, StripeInvoiceResult, StripeInvoiceStatus } from "./i
 
 function getStripe(): Stripe {
   const key = requireEnv("STRIPE_SECRET_KEY");
-  return new Stripe(key, { apiVersion: "2025-04-30.basil" });
+  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
 }
 
 export const stripe: StripeClient = {
