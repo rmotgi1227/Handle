@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { seedOnce } from "@/lib/store/seed";
+import { seedRetrievalOnce } from "@/lib/store/seed-retrieval";
 
 seedOnce();
+void seedRetrievalOnce().catch((e) => {
+  console.warn("[layout] seedRetrievalOnce failed:", e);
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
