@@ -101,7 +101,7 @@ export default function DashboardOverviewPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <section
-          className="flex h-[640px] flex-col overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+          className="flex h-[560px] flex-col overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
           style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
         >
           <header className="flex shrink-0 items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
@@ -123,7 +123,7 @@ export default function DashboardOverviewPage() {
         </section>
 
         <section
-          className="flex h-[640px] flex-col overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+          className="flex h-[560px] flex-col overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
           style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
         >
           <header className="flex shrink-0 items-baseline justify-between border-b border-[#E8E3DA] px-5 py-4">
