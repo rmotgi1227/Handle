@@ -4,11 +4,68 @@ import { agentphone } from "@/lib/integrations/agentphone";
 import { gemini } from "@/lib/integrations/gemini";
 import { supermemory } from "@/lib/integrations/supermemory";
 import { browseruse } from "@/lib/integrations/browseruse";
+import { moss } from "@/lib/integrations/moss";
 import type {
   Contractor,
   ContractorCallOutcome,
   Trade,
 } from "@/lib/types";
+
+export interface RecallContext {
+  pastJobs: { id: string; text: string; score: number }[];
+  ownerPreferences: { id: string; text: string; score: number }[];
+  contractorHits: { contractorId: string; score: number }[];
+  knowledgeHits: { id: string; text: string; score: number }[];
+}
+
+interface BuildRecallContextInput {
+  trade: Trade;
+  city: string;
+  problem: string;
+  address: string | undefined;
+}
+
+async function buildRecallContext(input: BuildRecallContextInput): Promise<RecallContext> {
+  const recallQuery = `${input.address ?? "unknown"} ${input.trade}`;
+  const knowledgeQuery = `${input.trade} ${input.problem}`;
+
+  const [knowledgeRes, contractorRes, memoryRes] = await Promise.all([
+    moss.searchKnowledge({ query: knowledgeQuery, topK: 3 }).catch((e) => {
+      console.warn("[orchestrator] moss.searchKnowledge failed:", e);
+      return { hits: [] as { id: string; text: string; score: number }[] };
+    }),
+    moss
+      .searchContractors({
+        trade: input.trade,
+        city: input.city,
+        problem: input.problem,
+        topK: 5,
+      })
+      .catch((e) => {
+        console.warn("[orchestrator] moss.searchContractors failed:", e);
+        return { hits: [] as { contractorId: string; score: number }[] };
+      }),
+    supermemory.recall({ query: recallQuery, topK: 6 }).catch((e) => {
+      console.warn("[orchestrator] supermemory.recall failed:", e);
+      return { memories: [] as { id: string; text: string; score: number }[] };
+    }),
+  ]);
+
+  // Owner prefs and past jobs come from the same Supermemory pool; split by tag-ish heuristics.
+  const owner: RecallContext["ownerPreferences"] = [];
+  const past: RecallContext["pastJobs"] = [];
+  for (const m of memoryRes.memories) {
+    if (/owner|prefer|portfolio|authoriz/i.test(m.text)) owner.push(m);
+    else past.push(m);
+  }
+
+  return {
+    pastJobs: past,
+    ownerPreferences: owner,
+    contractorHits: contractorRes.hits,
+    knowledgeHits: knowledgeRes.hits,
+  };
+}
 
 /**
  * Deterministic djb2-style hash → integer.
@@ -49,6 +106,7 @@ export interface FindContractorsInput {
   jobId: string;
   trade: Trade;
   city: string;
+  mossHits?: { contractorId: string; score: number }[];
 }
 
 export interface FindContractorsResult {
@@ -58,8 +116,26 @@ export interface FindContractorsResult {
 export async function findContractorsForJob(
   input: FindContractorsInput,
 ): Promise<FindContractorsResult> {
-  const { jobId, trade, city } = input;
+  const { jobId, trade, city, mossHits } = input;
 
+  // Moss-first path: if we already have ≥3 ranked hits, use them directly.
+  if (mossHits && mossHits.length >= 3) {
+    const sorted = [...mossHits].sort((a, b) => b.score - a.score).slice(0, 5);
+    const contractorIds = sorted
+      .map((h) => h.contractorId)
+      .filter((id) => store.contractors.has(id));
+
+    store.appendEvent({
+      jobId,
+      kind: "contractor_search_completed",
+      title: `Found ${contractorIds.length} candidates from Moss`,
+      data: { contractorIds, source: "moss" },
+    });
+
+    return { contractorIds };
+  }
+
+  // Fallback: Browser Use sourcing (existing behavior, unchanged).
   const { candidates } = await browseruse.findContractors({
     trade,
     city,
@@ -98,7 +174,7 @@ export async function findContractorsForJob(
     jobId,
     kind: "contractor_search_completed",
     title: `Found ${contractorIds.length} candidates`,
-    data: { contractorIds },
+    data: { contractorIds, source: "browser_use" },
   });
 
   return { contractorIds };
@@ -243,15 +319,35 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     data: { intent: intent.intent, confidence: intent.confidence },
   });
 
-  // 5. Recall similar past jobs from Supermemory.
-  const recallQuery = `${property?.address ?? "unknown"} ${intent.trade}`;
-  try {
-    await supermemory.recall({ query: recallQuery, topK: 3 });
-  } catch {
-    // Recall failures are non-fatal.
-  }
+  // 5. Recall context — Moss (catalog + knowledge) + Supermemory (history) in parallel.
+  const ctx = await buildRecallContext({
+    trade: intent.trade,
+    city,
+    problem: intent.description,
+    address: property?.address,
+  });
 
-  // 6. Find contractors (in-process call — no localhost fetch).
+  store.appendEvent({
+    jobId: job.id,
+    kind: "context_recalled",
+    title: `Recalled ${ctx.pastJobs.length} prior jobs · ${ctx.contractorHits.length} contractor matches · ${ctx.ownerPreferences.length} owner prefs`,
+    detail:
+      [
+        ctx.knowledgeHits[0]?.text,
+        ctx.pastJobs[0]?.text,
+        ctx.ownerPreferences[0]?.text,
+      ]
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" · ") || undefined,
+    data: {
+      pastJobIds: ctx.pastJobs.map((j) => j.id),
+      contractorIds: ctx.contractorHits.map((c) => c.contractorId),
+      knowledgeIds: ctx.knowledgeHits.map((k) => k.id),
+    },
+  });
+
+  // 6. Find contractors — Moss-first; falls back to Browser Use if <3 hits.
   store.appendEvent({
     jobId: job.id,
     kind: "contractor_search_started",
@@ -261,6 +357,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     jobId: job.id,
     trade: intent.trade,
     city,
+    mossHits: ctx.contractorHits,
   });
 
   // 7. Dial top 3 in parallel — first accepted_job WINS the race. The losing
@@ -303,19 +400,26 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
       data: { contractorId: assignedContractorId, etaWindow: winner.result.etaWindow },
     });
 
-    // 10. Remember in Supermemory.
+    // 10. Remember in Supermemory — richer text/tags improves future recall.
     try {
+      const etaSuffix = winner.result.etaWindow ? `, eta ${winner.result.etaWindow}` : "";
       await supermemory.remember({
-        text: `Job ${job.id} assigned to ${contractor?.name ?? assignedContractorId} for ${property?.address ?? propertyId}`,
-        tags: ["job", intent.trade],
+        text:
+          `Job ${job.id} at ${property?.address ?? propertyId} — ` +
+          `${intent.trade} (${intent.urgency}) assigned to ${contractor?.name ?? assignedContractorId}` +
+          etaSuffix +
+          ".",
+        tags: ["job", intent.trade, "assignment"],
         metadata: {
           jobId: job.id,
           contractorId: assignedContractorId,
           propertyId,
+          urgency: intent.urgency,
+          outcome: "accepted_job",
         },
       });
-    } catch {
-      // Remember failures are non-fatal.
+    } catch (e) {
+      console.warn("[orchestrator] supermemory.remember failed:", e);
     }
   }
 
