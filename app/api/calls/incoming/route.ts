@@ -87,6 +87,7 @@ interface StubJobResult {
   jobId: string;
   person: ReturnType<typeof findPersonByPhone>;
   property: ReturnType<typeof findPropertyForPerson>;
+  unit: ReturnType<typeof findUnitForPerson>;
 }
 
 function findPersonByPhone(fromNumber: string) {
@@ -95,6 +96,10 @@ function findPersonByPhone(fromNumber: string) {
 
 function findPropertyForPerson(person: ReturnType<typeof findPersonByPhone>) {
   return person?.propertyId ? store.properties.get(person.propertyId) : undefined;
+}
+
+function findUnitForPerson(person: ReturnType<typeof findPersonByPhone>) {
+  return person?.unitId ? store.getUnit(person.unitId) : undefined;
 }
 
 /**
@@ -108,16 +113,20 @@ function getOrCreateStubJob(callId: string, fromNumber: string): StubJobResult {
   if (existingCall?.jobId) {
     const person = existingCall.callerId ? store.people.get(existingCall.callerId) : undefined;
     const property = existingCall.propertyId ? store.properties.get(existingCall.propertyId) : undefined;
-    return { jobId: existingCall.jobId, person, property };
+    const unit = findUnitForPerson(person);
+    return { jobId: existingCall.jobId, person, property, unit };
   }
 
   const person = findPersonByPhone(fromNumber);
   const property = findPropertyForPerson(person);
+  const unit = findUnitForPerson(person);
   const jobId = `job_${nanoid(8)}`;
 
   store.upsertJob({
     id: jobId,
     propertyId: property?.id ?? "prop_unknown",
+    unitId: unit?.id,
+    unitLabel: unit?.label,
     reportedByPersonId: person?.id ?? "person_unknown",
     status: "triaging",
     urgency: "standard",
@@ -132,11 +141,11 @@ function getOrCreateStubJob(callId: string, fromNumber: string): StubJobResult {
     kind: "call_received",
     title: person ? `Tenant call received — ${person.name}` : `Call received from ${fromNumber}`,
     detail: property
-      ? `${property.address}${property.unit ? ` Unit ${property.unit}` : ""}`
+      ? `${property.address}${unit?.label ? `, Unit ${unit.label}` : property.unit ? ` Unit ${property.unit}` : ""}`
       : undefined,
   });
 
-  return { jobId, person, property };
+  return { jobId, person, property, unit };
 }
 
 // ---------------------------------------------------------------------------
@@ -205,7 +214,7 @@ async function handleLiveWebhook(
     }
     const { callId, from, transcript } = body.data.data;
     const startedAt = body.data.timestamp ?? new Date().toISOString();
-    const { jobId, person, property } = getOrCreateStubJob(callId, from);
+    const { jobId, person, property, unit } = getOrCreateStubJob(callId, from);
 
     const existing = store.calls.get(callId);
     const lines: CallTranscriptLine[] = existing ? [...existing.transcript] : [];
@@ -224,6 +233,7 @@ async function handleLiveWebhook(
       callerId: person?.id ?? existing?.callerId,
       callerRole: person?.role ?? existing?.callerRole,
       propertyId: property?.id ?? existing?.propertyId,
+      unitId: unit?.id ?? existing?.unitId,
       status: "in_progress",
       startedAt: existing?.startedAt ?? startedAt,
       transcript: lines,
@@ -249,7 +259,7 @@ async function handleLiveWebhook(
     // Live `agent.call_ended` can arrive before any `agent.message` if the
     // call was very short — fall back to "unknown" so we still record it.
     const fromNumber = existing?.fromNumber ?? "unknown";
-    const { jobId, person, property } = getOrCreateStubJob(callId, fromNumber);
+    const { jobId, person, property, unit } = getOrCreateStubJob(callId, fromNumber);
 
     // AgentPhone's call_ended transcript is the authoritative final version,
     // so it replaces any partial lines accumulated from agent.message events.
@@ -265,6 +275,7 @@ async function handleLiveWebhook(
       callerId: person?.id ?? existing?.callerId,
       callerRole: person?.role ?? existing?.callerRole,
       propertyId: property?.id ?? existing?.propertyId,
+      unitId: unit?.id ?? existing?.unitId,
       status: "completed",
       startedAt: existing?.startedAt ?? endedAt,
       endedAt,
@@ -327,7 +338,7 @@ async function handleMockPost(
   const callId = `call_${nanoid(8)}`;
   const startedAt = new Date().toISOString();
 
-  const { jobId, person, property } = getOrCreateStubJob(callId, fromNumber);
+  const { jobId, person, property, unit } = getOrCreateStubJob(callId, fromNumber);
 
   // Preserve the original mock title/description override when a transcript
   // is supplied via curl. getOrCreateStubJob picks a generic title; replace
@@ -361,6 +372,7 @@ async function handleMockPost(
     callerId: person?.id,
     callerRole: person?.role,
     propertyId: property?.id,
+    unitId: unit?.id,
     status: "in_progress",
     startedAt: startedAt,
     transcript,

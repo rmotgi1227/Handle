@@ -102,7 +102,7 @@ export default async function JobDetailPage({
             <span>
               Property:{" "}
               <span className="font-semibold text-[#15161A]">
-                {property.address}{property.unit ? ` · Unit ${property.unit}` : ""}
+                {property.address}{job.unitLabel ? ` · Unit ${job.unitLabel}` : property.unit ? ` · Unit ${property.unit}` : ""}
               </span>
             </span>
           ) : null}

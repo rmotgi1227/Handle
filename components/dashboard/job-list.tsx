@@ -124,7 +124,7 @@ export function JobList({
                   </div>
                   <div className="mt-0.5 truncate text-xs font-medium text-[#9AA0A0]">
                     {property
-                      ? `${property.address}${property.unit ? ` · Unit ${property.unit}` : ""}`
+                      ? `${property.address}${job.unitLabel ? ` · Unit ${job.unitLabel}` : property.unit ? ` · Unit ${property.unit}` : ""}`
                       : "Unknown property"}
                   </div>
                 </div>

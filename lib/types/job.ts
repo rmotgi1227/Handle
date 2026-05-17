@@ -17,6 +17,10 @@ export type JobUrgency = "emergency" | "urgent" | "standard" | "scheduled";
 export interface Job {
   id: string;
   propertyId: string;
+  /** Specific unit within the building (resolved from caller-ID via the tenant DB). */
+  unitId?: string;
+  /** Cached human label for the unit ("3B", "PH (Penthouse)") for fast display. */
+  unitLabel?: string;
   reportedByPersonId: string;
   createdAt: string;
   updatedAt: string;

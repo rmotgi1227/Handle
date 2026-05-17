@@ -14,6 +14,7 @@ export interface Call {
   callerId?: string;
   callerRole?: PersonRole;
   propertyId?: string;
+  unitId?: string;
   status: CallStatus;
   startedAt: string;
   endedAt?: string;
