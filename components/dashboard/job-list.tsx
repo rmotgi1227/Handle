@@ -128,7 +128,7 @@ export function JobList({
                   <span>Unassigned</span>
                 )}
                 <span className="text-[#E8E3DA]">·</span>
-                <span className="tabular-nums">{relativeTime(job.createdAt)}</span>
+                <span className="tabular-nums" suppressHydrationWarning>{relativeTime(job.createdAt)}</span>
               </div>
             </div>
           </Link>

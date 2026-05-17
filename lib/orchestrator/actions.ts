@@ -212,7 +212,7 @@ export async function recordSurveyResponse(
   if (job.assignedContractorId) {
     try {
       await supermemory.remember({
-        text: `Contractor ${job.assignedContractorId} completed "${job.title}" (${job.trade}) at property ${job.propertyId}. Tenant satisfaction score: ${input.score}/5.${input.feedback ? ` Feedback: "${input.feedback}"` : ""}`,
+        text: `survey_response contractor:${job.assignedContractorId} trade:${job.trade} property:${job.propertyId} score:${input.score}/5 — "${job.title}"${input.feedback ? ` — "${input.feedback}"` : ""}`,
         tags: [
           "survey_response",
           `contractor:${job.assignedContractorId}`,
