@@ -8,6 +8,7 @@ const EnvSchema = z.object({
   AGENTPHONE_API_KEY: z.string().optional(),
   AGENTPHONE_NUMBER: z.string().optional(),
   AGENTPHONE_WEBHOOK_SECRET: z.string().optional(),
+  AGENTPHONE_AGENT_ID: z.string().optional(),
 
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default("gemini-2.5-pro"),
