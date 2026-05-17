@@ -68,6 +68,15 @@ export interface Property {
   notes?: string;
 }
 
+/**
+ * Who pays for maintenance on this unit.
+ *  - "rental":         landlord covers repairs (typical apartment).
+ *  - "owner_occupied": the occupant owns the unit and pays out of pocket
+ *                     (typical condo unit). The agent confirms spend with
+ *                     the unit owner before dispatching anything billable.
+ */
+export type UnitOwnership = "rental" | "owner_occupied";
+
 /** A rentable unit inside a Property (building). */
 export interface Unit {
   id: string;
@@ -87,4 +96,6 @@ export interface Unit {
   spendCapCents?: number;
   /** Unit-specific quirks ("garbage disposal jams often"). */
   notes?: string;
+  /** Renter or owner-occupier? Drives who authorizes spend. Defaults to "rental". */
+  ownership?: UnitOwnership;
 }

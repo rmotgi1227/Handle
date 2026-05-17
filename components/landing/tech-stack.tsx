@@ -4,8 +4,9 @@ import {
   Database,
   Layers,
   Globe,
-  Receipt,
+  Coins,
   Mail,
+  CreditCard,
 } from "lucide-react";
 
 type Vendor = {
@@ -34,7 +35,7 @@ const VENDORS: Vendor[] = [
   {
     name: "Moss",
     role: "Catalog recall",
-    body: "Sub-10ms semantic search over the vetted contractor catalog and the property knowledge index.",
+    body: "Sub-10ms semantic search over the vetted contractor catalog and property knowledge index.",
     Icon: Layers,
     accent: "blue",
   },
@@ -54,9 +55,9 @@ const VENDORS: Vendor[] = [
   },
   {
     name: "Sponge",
-    role: "Invoicing & payouts",
-    body: "Generates invoices on job completion and releases payout to the contractor.",
-    Icon: Receipt,
+    role: "Contractor payouts",
+    body: "Pays contractors in USDC on Solana the moment work clears — settled in seconds, not days.",
+    Icon: Coins,
     accent: "blue",
   },
   {
@@ -66,12 +67,19 @@ const VENDORS: Vendor[] = [
     Icon: Mail,
     accent: "ink",
   },
+  {
+    name: "Stripe",
+    role: "Subscription billing",
+    body: "Bills the property manager's Handle subscription and per-dispatch fee — cards, receipts, invoices.",
+    Icon: CreditCard,
+    accent: "orange",
+  },
 ];
 
-const ACCENT: Record<Vendor["accent"], { ring: string; chip: string }> = {
-  ink: { ring: "border-[#15161A]", chip: "bg-[#15161A] text-[#F6F4EF]" },
-  orange: { ring: "border-[#E8572A]", chip: "bg-[#E8572A] text-[#F6F4EF]" },
-  blue: { ring: "border-[#3B5A78]", chip: "bg-[#3B5A78] text-[#F6F4EF]" },
+const ACCENT: Record<Vendor["accent"], { chip: string; label: string; dot: string }> = {
+  ink: { chip: "bg-[#15161A] text-[#F6F4EF]", label: "text-[#15161A]", dot: "bg-[#15161A]" },
+  orange: { chip: "bg-[#E8572A] text-[#F6F4EF]", label: "text-[#C24919]", dot: "bg-[#E8572A]" },
+  blue: { chip: "bg-[#3B5A78] text-[#F6F4EF]", label: "text-[#3B5A78]", dot: "bg-[#3B5A78]" },
 };
 
 export function TechStack() {
@@ -87,7 +95,7 @@ export function TechStack() {
               The stack
             </span>
             <h2 className="mt-3 max-w-2xl text-balance text-4xl font-black tracking-tight text-[#15161A] md:text-5xl">
-              Seven tools, one calm dispatcher.
+              Eight tools, one calm dispatcher.
             </h2>
           </div>
           <p className="max-w-md text-base font-medium leading-relaxed text-[#6B7070]">
@@ -97,36 +105,33 @@ export function TechStack() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {VENDORS.map((v, idx) => {
-            const isWide = idx === 0;
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {VENDORS.map((v) => {
+            const a = ACCENT[v.accent];
             return (
               <article
                 key={v.name}
-                className={`group relative flex flex-col gap-4 rounded-2xl border border-[#E8E3DA] bg-white p-6 transition-shadow hover:shadow-[0_4px_24px_rgba(21,22,26,0.08)] ${
-                  isWide ? "lg:col-span-2" : ""
-                }`}
+                className="group relative flex flex-col rounded-2xl border border-[#E8E3DA] bg-white p-5 transition-shadow hover:shadow-[0_4px_24px_rgba(21,22,26,0.08)]"
               >
-                <div className="flex items-start justify-between">
+                <span
+                  className={`mb-5 inline-flex size-10 items-center justify-center rounded-xl ${a.chip}`}
+                >
+                  <v.Icon className="size-[18px]" />
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className={`size-1.5 rounded-full ${a.dot}`} aria-hidden />
                   <span
-                    className={`inline-flex size-11 items-center justify-center rounded-xl ${ACCENT[v.accent].chip}`}
-                  >
-                    <v.Icon className="size-5" />
-                  </span>
-                  <span
-                    className={`inline-flex items-center rounded-full border bg-[#F6F4EF] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#15161A] ${ACCENT[v.accent].ring}`}
+                    className={`text-[10px] font-bold uppercase tracking-[0.18em] ${a.label}`}
                   >
                     {v.role}
                   </span>
-                </div>
-                <div>
-                  <h3 className="text-xl font-black tracking-tight text-[#15161A]">
-                    {v.name}
-                  </h3>
-                  <p className="mt-2 text-sm font-medium leading-relaxed text-[#6B7070]">
-                    {v.body}
-                  </p>
-                </div>
+                </span>
+                <h3 className="mt-1.5 text-lg font-black tracking-tight text-[#15161A]">
+                  {v.name}
+                </h3>
+                <p className="mt-2 text-[13px] font-medium leading-relaxed text-[#6B7070]">
+                  {v.body}
+                </p>
               </article>
             );
           })}

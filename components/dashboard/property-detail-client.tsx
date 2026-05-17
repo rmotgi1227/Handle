@@ -132,68 +132,133 @@ export function PropertyDetailClient({ initialContext }: { initialContext: Ctx }
     [ctx.property.propertyType],
   );
 
+  // Flat tenant rows (Tenant DB is the hero of this page).
+  const tenantRows: TenantRow[] = useMemo(() => {
+    const rows: TenantRow[] = [];
+    for (const u of ctx.units) {
+      for (const t of u.tenants) {
+        rows.push({
+          person: t,
+          unitLabel: u.unit.label,
+          unitId: u.unit.id,
+          floor: u.unit.floor,
+          sqft: u.unit.sqft,
+          spendCapCents: u.effectiveSpendCapCents,
+          jobCount: u.recentJobIds.length,
+        });
+      }
+    }
+    return rows;
+  }, [ctx.units]);
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <header className="rounded-2xl border border-[#E8E3DA] bg-white p-6" style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}>
-        <div className="flex items-start justify-between gap-4">
+      {/* COMPACT HEADER */}
+      <header
+        className="rounded-2xl border border-[#E8E3DA] bg-white p-5 sm:p-6"
+        style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#9AA0A0]">
-              <MapPin className="size-3" />
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">
+              <Building2 className="size-3" />
               {typeLabel}
             </div>
-            <h1 className="mt-1.5 text-3xl font-black tracking-tight text-[#15161A]">
+            <h1 className="mt-1.5 text-3xl font-black tracking-tight text-[#15161A] sm:text-4xl">
               {ctx.property.address}
             </h1>
-            <p className="mt-1.5 text-sm font-medium text-[#6B7070]">
-              The agent reads this back during triage. Keep it accurate.
-            </p>
-          </div>
-          {editing ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditing(false);
-                  setDraft(ctx.property);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E3DA] bg-white px-3.5 py-2 text-xs font-bold text-[#6B7070] hover:bg-[#F6F4EF]"
-              >
-                <X className="size-3" /> Cancel
-              </button>
-              <button
-                type="button"
-                onClick={saveBuilding}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#15161A] px-4 py-2 text-xs font-bold text-[#F6F4EF] hover:bg-[#2A2C30] disabled:opacity-60"
-              >
-                {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
-                Save building
-              </button>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#6B7070]">
+              <span className="inline-flex items-center gap-1">
+                <Users className="size-3" /> {tenantRows.length} tenants
+              </span>
+              <span className="text-[#E8E3DA]">·</span>
+              <span>
+                {ctx.occupancy.occupiedUnits}/{ctx.occupancy.totalUnits}{" "}
+                <span className="font-medium text-[#9AA0A0]">units occupied</span>
+              </span>
+              <span className="text-[#E8E3DA]">·</span>
+              <span>
+                {ctx.lifetimeJobCount}{" "}
+                <span className="font-medium text-[#9AA0A0]">lifetime jobs</span>
+              </span>
+              <span className="text-[#E8E3DA]">·</span>
+              <span className="font-mono tabular-nums">
+                {fmtUsd(ctx.lifetimeSpendCents)}{" "}
+                <span className="font-medium text-[#9AA0A0]">spend</span>
+              </span>
             </div>
-          ) : (
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E3DA] bg-white px-3.5 py-2 text-xs font-bold text-[#15161A] hover:bg-[#EEEBE4]"
+              onClick={() => setAddUnitOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E3DA] bg-white px-3.5 py-2 text-xs font-bold text-[#15161A] hover:bg-[#F6F4EF]"
             >
-              <Pencil className="size-3" /> Edit building
+              <Layers className="size-3" /> Add unit
             </button>
-          )}
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Pill label="Units" value={ctx.occupancy.totalUnits.toString()} />
-          <Pill label="Occupied" value={`${ctx.occupancy.occupiedUnits}/${ctx.occupancy.totalUnits}`} />
-          <Pill label="Lifetime jobs" value={ctx.lifetimeJobCount.toString()} />
-          <Pill label="Lifetime spend" value={fmtUsd(ctx.lifetimeSpendCents)} />
+            {editing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(false);
+                    setDraft(ctx.property);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E3DA] bg-white px-3.5 py-2 text-xs font-bold text-[#6B7070] hover:bg-[#F6F4EF]"
+                >
+                  <X className="size-3" /> Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveBuilding}
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#15161A] px-4 py-2 text-xs font-bold text-[#F6F4EF] hover:bg-[#2A2C30] disabled:opacity-60"
+                >
+                  {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                  Save building
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#E8E3DA] bg-white px-3.5 py-2 text-xs font-bold text-[#15161A] hover:bg-[#EEEBE4]"
+              >
+                <Pencil className="size-3" /> Edit building
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* LEFT — building file (2 cols) */}
-        <div className="flex flex-col gap-5 lg:col-span-2">
-          <Section icon={<MapPin className="size-3.5" />} title="Identity">
+      {/* MAIN GRID — Tenant table is the hero; building info is the sidebar */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <main className="flex flex-col gap-6">
+          <TenantTable
+            rows={tenantRows}
+            occupiedUnits={ctx.occupancy.occupiedUnits}
+            totalUnits={ctx.occupancy.totalUnits}
+          />
+
+        </main>
+
+        {/* SIDEBAR — building info, collapsible */}
+        <aside className="flex flex-col gap-3">
+          <SidebarAccordion title="Owner & manager" icon={<Users className="size-3.5" />} defaultOpen>
+            <ul className="flex flex-col gap-2 text-sm">
+              <li className="flex items-baseline justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">Manager</span>
+                <span className="font-semibold text-[#15161A]">{ctx.manager?.name ?? "—"}</span>
+              </li>
+              <li className="flex items-baseline justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">Owner</span>
+                <span className="font-semibold text-[#15161A]">{ctx.owner?.name ?? "—"}</span>
+              </li>
+            </ul>
+          </SidebarAccordion>
+
+          <SidebarAccordion title="Identity" icon={<MapPin className="size-3.5" />}>
             <Grid>
               <Field label="Street address" editing={editing} value={editing ? (draft.address ?? "") : ctx.property.address} onChange={(v) => setField("address", v)} />
               <SelectField
@@ -210,27 +275,27 @@ export function PropertyDetailClient({ initialContext }: { initialContext: Ctx }
                 onChange={(v) => setField("yearBuilt", v)}
               />
             </Grid>
-          </Section>
+          </SidebarAccordion>
 
-          <Section icon={<KeyRound className="size-3.5" />} title="Building access">
+          <SidebarAccordion title="Building access" icon={<KeyRound className="size-3.5" />}>
             <Grid>
               <Field label="Main gate code" editing={editing} mono value={editing ? (draft.gateCode ?? "") : ctx.property.gateCode ?? "—"} onChange={(v) => setField("gateCode", v)} />
               <Field label="Lobby / building lockbox" editing={editing} mono value={editing ? (draft.lockboxCode ?? "") : ctx.property.lockboxCode ?? "—"} onChange={(v) => setField("lockboxCode", v)} />
             </Grid>
             <Multi label="Parking" editing={editing} value={editing ? (draft.parkingNotes ?? "") : ctx.property.parkingNotes ?? ""} onChange={(v) => setField("parkingNotes", v)} />
             <Multi label="Access notes" editing={editing} value={editing ? (draft.accessNotes ?? "") : ctx.property.accessNotes ?? ""} onChange={(v) => setField("accessNotes", v)} />
-          </Section>
+          </SidebarAccordion>
 
-          <Section icon={<Wrench className="size-3.5" />} title="Building utilities">
+          <SidebarAccordion title="Building utilities" icon={<Wrench className="size-3.5" />}>
             <Grid>
               <Field label="Water shutoff" editing={editing} value={editing ? (draft.waterShutoffLocation ?? "") : ctx.property.waterShutoffLocation ?? "—"} onChange={(v) => setField("waterShutoffLocation", v)} />
               <Field label="Main breaker panel" editing={editing} value={editing ? (draft.electricalPanelLocation ?? "") : ctx.property.electricalPanelLocation ?? "—"} onChange={(v) => setField("electricalPanelLocation", v)} />
               <Field label="HVAC" editing={editing} value={editing ? (draft.hvacType ?? "") : ctx.property.hvacType ?? "—"} onChange={(v) => setField("hvacType", v)} />
             </Grid>
             <Multi label="Utility notes" editing={editing} value={editing ? (draft.utilityNotes ?? "") : ctx.property.utilityNotes ?? ""} onChange={(v) => setField("utilityNotes", v)} />
-          </Section>
+          </SidebarAccordion>
 
-          <Section icon={<ShieldAlert className="size-3.5" />} title="Owner rules">
+          <SidebarAccordion title="Owner rules" icon={<ShieldAlert className="size-3.5" />}>
             <Grid>
               <NumField
                 label="Default spend cap (USD)"
@@ -251,32 +316,21 @@ export function PropertyDetailClient({ initialContext }: { initialContext: Ctx }
             </Grid>
             <Multi label="Owner instructions" editing={editing} value={editing ? (draft.ownerInstructions ?? "") : ctx.property.ownerInstructions ?? ""} onChange={(v) => setField("ownerInstructions", v)} />
             <Multi label="Building notes (HOA quirks, quiet hours, COI)" editing={editing} value={editing ? (draft.notes ?? "") : ctx.property.notes ?? ""} onChange={(v) => setField("notes", v)} />
-          </Section>
-        </div>
-
-        {/* RIGHT — people, contractors, recent jobs */}
-        <aside className="flex flex-col gap-5">
-          <Section icon={<Users className="size-3.5" />} title="Owner & manager">
-            <ul className="flex flex-col gap-2 text-sm">
-              <li className="flex items-baseline justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5">
-                <span className="text-xs font-bold uppercase tracking-[0.1em] text-[#9AA0A0]">Manager</span>
-                <span className="font-semibold text-[#15161A]">{ctx.manager?.name ?? "—"}</span>
-              </li>
-              <li className="flex items-baseline justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5">
-                <span className="text-xs font-bold uppercase tracking-[0.1em] text-[#9AA0A0]">Owner</span>
-                <span className="font-semibold text-[#15161A]">{ctx.owner?.name ?? "—"}</span>
-              </li>
-            </ul>
-          </Section>
+          </SidebarAccordion>
 
           {ctx.preferredContractors.length > 0 ? (
-            <Section icon={<Briefcase className="size-3.5" />} title="Preferred contractors">
+            <SidebarAccordion title="Preferred contractors" icon={<Briefcase className="size-3.5" />}>
               <ul className="flex flex-col gap-1.5">
                 {ctx.preferredContractors.slice(0, 5).map((c) => (
-                  <li key={c.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2 text-sm">
+                  <li
+                    key={c.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2 text-sm"
+                  >
                     <div>
                       <div className="font-bold text-[#15161A]">{c.name}</div>
-                      <div className="text-[0.7rem] font-medium text-[#9AA0A0]">{c.trades.join(" · ")}</div>
+                      <div className="text-[0.7rem] font-medium text-[#9AA0A0]">
+                        {c.trades.join(" · ")}
+                      </div>
                     </div>
                     <span className="text-[0.7rem] font-semibold text-[#9AA0A0]">
                       {new Date(c.lastUsedAt).toLocaleDateString()}
@@ -284,14 +338,17 @@ export function PropertyDetailClient({ initialContext }: { initialContext: Ctx }
                   </li>
                 ))}
               </ul>
-            </Section>
+            </SidebarAccordion>
           ) : null}
 
           {ctx.recentJobs.length > 0 ? (
-            <Section icon={<Briefcase className="size-3.5" />} title="Recent jobs">
+            <SidebarAccordion title="Recent jobs" icon={<Briefcase className="size-3.5" />}>
               <ul className="flex flex-col gap-1.5">
                 {ctx.recentJobs.slice(0, 6).map((j) => (
-                  <li key={j.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2 text-sm">
+                  <li
+                    key={j.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5 text-sm"
+                  >
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-bold text-[#15161A]">{j.title}</div>
                       <div className="text-[0.7rem] font-medium text-[#9AA0A0]">
@@ -304,60 +361,43 @@ export function PropertyDetailClient({ initialContext }: { initialContext: Ctx }
                   </li>
                 ))}
               </ul>
-            </Section>
+            </SidebarAccordion>
           ) : null}
+
+          <SidebarAccordion title="Units" icon={<Layers className="size-3.5" />}>
+            <ul className="flex flex-col gap-1.5 text-sm">
+              {ctx.units.map((u) => (
+                <li
+                  key={u.unit.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex size-7 items-center justify-center rounded-md border border-[#E8E3DA] bg-white text-xs font-black tabular-nums text-[#15161A]">
+                      {u.unit.label}
+                    </span>
+                    <span className="text-[0.75rem] font-medium text-[#6B7070]">
+                      {u.tenants.length > 0
+                        ? `${u.tenants.length} tenant${u.tenants.length === 1 ? "" : "s"}`
+                        : "Vacant"}
+                    </span>
+                  </span>
+                  <span className="font-mono text-[0.7rem] font-bold tabular-nums text-[#15161A]">
+                    {u.effectiveSpendCapCents ? fmtUsd(u.effectiveSpendCapCents) : "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setAddUnitOpen(true)}
+              className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[#15161A] px-3.5 py-2 text-xs font-bold text-[#F6F4EF] hover:bg-[#2A2C30]"
+            >
+              <Plus className="size-3.5" />
+              Add unit
+            </button>
+          </SidebarAccordion>
         </aside>
       </div>
-
-      {/* UNITS */}
-      <section
-        className="rounded-2xl border border-[#E8E3DA] bg-white p-5"
-        style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
-      >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#9AA0A0]">
-              <Layers className="size-3" />
-              Units in this building
-            </div>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#15161A]">
-              {ctx.units.length} unit{ctx.units.length === 1 ? "" : "s"} ·{" "}
-              <span className="font-bold text-[#6B7070]">
-                {ctx.occupancy.occupiedUnits} occupied
-              </span>
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAddUnitOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#15161A] px-3.5 py-2 text-xs font-bold text-[#F6F4EF] hover:bg-[#2A2C30]"
-          >
-            <Plus className="size-3.5" />
-            Add unit
-          </button>
-        </div>
-
-        {ctx.units.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[#E8E3DA] bg-[#F6F4EF] p-8 text-center">
-            <Layers className="mx-auto size-6 text-[#D5CFC6]" />
-            <p className="mt-2 text-sm font-semibold text-[#15161A]">No units yet</p>
-            <p className="text-xs font-medium text-[#9AA0A0]">
-              Add a unit so tenants can be tied to a specific apartment.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {ctx.units.map((u) => (
-              <UnitRow
-                key={u.unit.id}
-                unitCtx={u}
-                buildingSpendCapCents={ctx.property.spendCapCents}
-                onSaved={refetch}
-              />
-            ))}
-          </div>
-        )}
-      </section>
 
       <AddUnitDialog
         propertyId={propertyId}
@@ -368,6 +408,326 @@ export function PropertyDetailClient({ initialContext }: { initialContext: Ctx }
     </div>
   );
 }
+
+/* ---- Tenant database table (the hero of this page) ----------------------- */
+
+type TenantRow = {
+  person: Person;
+  unitLabel: string;
+  unitId: string;
+  floor?: number;
+  sqft?: number;
+  spendCapCents?: number;
+  jobCount: number;
+};
+
+type SortKey = "name" | "unit" | "jobs";
+
+function TenantTable({
+  rows,
+  occupiedUnits,
+  totalUnits,
+}: {
+  rows: TenantRow[];
+  occupiedUnits: number;
+  totalUnits: number;
+}) {
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
+    key: "unit",
+    dir: "asc",
+  });
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const base = q
+      ? rows.filter((r) => {
+          const hay = [
+            r.person.name,
+            r.person.phone,
+            r.person.email ?? "",
+            r.unitLabel,
+          ]
+            .join(" ")
+            .toLowerCase();
+          return hay.includes(q);
+        })
+      : rows;
+
+    const dir = sort.dir === "asc" ? 1 : -1;
+    const sorted = [...base].sort((a, b) => {
+      if (sort.key === "name") return a.person.name.localeCompare(b.person.name) * dir;
+      if (sort.key === "jobs") return (a.jobCount - b.jobCount) * dir;
+      return (
+        a.unitLabel.localeCompare(b.unitLabel, undefined, { numeric: true }) * dir
+      );
+    });
+    return sorted;
+  }, [rows, query, sort]);
+
+  function toggleSort(key: SortKey) {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "asc" },
+    );
+  }
+
+  return (
+    <section
+      className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+      style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+    >
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E3DA] bg-[#F6F4EF] p-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#3B5A78]">
+            <Users className="size-3" />
+            Tenant database
+          </div>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#15161A]">
+            {rows.length}{" "}
+            <span className="text-base font-bold text-[#6B7070]">
+              tenant{rows.length === 1 ? "" : "s"} across {occupiedUnits}/{totalUnits} units
+            </span>
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="relative inline-flex items-center">
+            <Search className="pointer-events-none absolute left-3 size-3.5 text-[#9AA0A0]" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, phone, unit…"
+              className="h-9 w-64 rounded-full border border-[#E8E3DA] bg-white pl-8 pr-3 text-sm font-medium text-[#15161A] placeholder:text-[#9AA0A0] focus:border-[#15161A] focus:outline-none"
+            />
+          </label>
+        </div>
+      </header>
+
+      {filtered.length === 0 ? (
+        <div className="p-10 text-center">
+          <Users className="mx-auto size-6 text-[#D5CFC6]" />
+          <p className="mt-2 text-sm font-semibold text-[#15161A]">
+            {rows.length === 0 ? "No tenants yet" : "No matches"}
+          </p>
+          <p className="text-xs font-medium text-[#9AA0A0]">
+            {rows.length === 0
+              ? "Add a unit and assign tenants so the agent can match caller-ID."
+              : "Try a different search term."}
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#E8E3DA] bg-white text-left text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">
+                <th className="px-5 py-3">
+                  <SortButton
+                    label="Tenant"
+                    active={sort.key === "name"}
+                    dir={sort.dir}
+                    onClick={() => toggleSort("name")}
+                  />
+                </th>
+                <th className="px-3 py-3">
+                  <SortButton
+                    label="Unit"
+                    active={sort.key === "unit"}
+                    dir={sort.dir}
+                    onClick={() => toggleSort("unit")}
+                  />
+                </th>
+                <th className="px-3 py-3">Phone</th>
+                <th className="px-3 py-3">Email</th>
+                <th className="px-3 py-3">Spend cap</th>
+                <th className="px-3 py-3">
+                  <SortButton
+                    label="Jobs"
+                    active={sort.key === "jobs"}
+                    dir={sort.dir}
+                    onClick={() => toggleSort("jobs")}
+                  />
+                </th>
+                <th className="px-3 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r, idx) => (
+                <tr
+                  key={r.person.id}
+                  className={`group border-b border-[#E8E3DA] transition-colors last:border-b-0 hover:bg-[#F6F4EF] ${
+                    idx % 2 === 1 ? "bg-[#FAFAF6]" : "bg-white"
+                  }`}
+                >
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#15161A] text-xs font-black text-[#F6F4EF]"
+                      >
+                        {initialsOf(r.person.name)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate font-bold text-[#15161A]">
+                          {r.person.name}
+                        </div>
+                        <div className="text-[0.7rem] font-medium text-[#9AA0A0]">
+                          Tenant · ID {r.person.id.slice(0, 6)}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-flex size-7 items-center justify-center rounded-md border border-[#E8E3DA] bg-[#F6F4EF] text-xs font-black tabular-nums text-[#15161A]">
+                        {r.unitLabel}
+                      </span>
+                      <span className="text-[0.7rem] font-medium text-[#6B7070]">
+                        {r.floor ? `Fl ${r.floor}` : ""}
+                        {r.floor && r.sqft ? " · " : ""}
+                        {r.sqft ? `${r.sqft} sqft` : ""}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 font-mono text-[0.8rem] tabular-nums text-[#15161A]">
+                    {r.person.phone}
+                  </td>
+                  <td className="px-3 py-3 text-[0.8rem] text-[#15161A]">
+                    {r.person.email ? (
+                      <span className="truncate">{r.person.email}</span>
+                    ) : (
+                      <span className="text-[#9AA0A0]">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 font-mono text-[0.8rem] font-bold tabular-nums text-[#15161A]">
+                    {r.spendCapCents ? fmtUsd(r.spendCapCents) : "—"}
+                  </td>
+                  <td className="px-3 py-3">
+                    <span
+                      className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-black tabular-nums ${
+                        r.jobCount > 0
+                          ? "bg-[#15161A] text-[#F6F4EF]"
+                          : "bg-[#F6F4EF] text-[#9AA0A0]"
+                      }`}
+                    >
+                      {r.jobCount}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <div className="inline-flex items-center gap-1.5 opacity-60 transition-opacity group-hover:opacity-100">
+                      <a
+                        href={`tel:${r.person.phone}`}
+                        aria-label={`Call ${r.person.name}`}
+                        className="inline-flex size-8 items-center justify-center rounded-full border border-[#E8E3DA] bg-white text-[#15161A] hover:bg-[#15161A] hover:text-[#F6F4EF]"
+                      >
+                        <PhoneCall className="size-3.5" />
+                      </a>
+                      {r.person.email ? (
+                        <a
+                          href={`mailto:${r.person.email}`}
+                          aria-label={`Email ${r.person.name}`}
+                          className="inline-flex size-8 items-center justify-center rounded-full border border-[#E8E3DA] bg-white text-[#15161A] hover:bg-[#15161A] hover:text-[#F6F4EF]"
+                        >
+                          <Mail className="size-3.5" />
+                        </a>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SortButton({
+  label,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  dir: "asc" | "desc";
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] ${
+        active ? "text-[#15161A]" : "text-[#9AA0A0]"
+      } hover:text-[#15161A]`}
+    >
+      {label}
+      <ArrowUpDown
+        className={`size-3 transition-transform ${
+          active && dir === "desc" ? "rotate-180" : ""
+        } ${active ? "opacity-100" : "opacity-40"}`}
+      />
+    </button>
+  );
+}
+
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+/* ---- Sidebar accordion (collapsible building info section) --------------- */
+
+function SidebarAccordion({
+  title,
+  icon,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section
+      className="overflow-hidden rounded-2xl border border-[#E8E3DA] bg-white"
+      style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.04)" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[#F6F4EF]"
+      >
+        <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[#15161A]">
+          <span className="text-[#9AA0A0]">{icon}</span>
+          {title}
+        </span>
+        {open ? (
+          <ChevronDown className="size-4 text-[#9AA0A0]" />
+        ) : (
+          <ChevronRight className="size-4 text-[#9AA0A0]" />
+        )}
+      </button>
+      {open ? (
+        <div className="flex flex-col gap-3 border-t border-[#E8E3DA] p-4">{children}</div>
+      ) : null}
+    </section>
+  );
+}
+
+// Keep UserPlus referenced so a future "add tenant" button can import it without
+// re-touching the import list. Lints flag unused imports otherwise.
+void UserPlus;
 
 /* ---- Unit row (expandable / editable inline) ------------------------------ */
 

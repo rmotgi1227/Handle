@@ -29,6 +29,8 @@ export interface UnitContext {
   recentJobIds: string[];
   /** Effective spend cap: unit override or building default. */
   effectiveSpendCapCents?: number;
+  /** Renter vs owner-occupier; defaults to "rental". Drives who pays. */
+  ownership: "rental" | "owner_occupied";
 }
 
 const ACTIVE_STATUSES = new Set<Job["status"]>([

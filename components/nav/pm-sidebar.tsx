@@ -72,9 +72,6 @@ export function PmSidebar() {
         })}
       </nav>
 
-      <div className="px-6 py-4 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#9AA0A0]">
-        v1 · mock mode
-      </div>
     </aside>
   );
 }
