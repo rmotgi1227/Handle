@@ -774,12 +774,19 @@ export function seedOnce(): void {
   store.upsertUnit({ id: "unit_p9_5", propertyId: "prop_9", label: "5", floor: 4, bedrooms: 1, bathrooms: 1, sqft: 660, tenantIds: [], vacant: true, notes: "Vacant — listed at $3,400/mo, four-flight walkup discounts apply." });
   store.upsertUnit({ id: "unit_p9_6", propertyId: "prop_9", label: "6 (top)", floor: 4, bedrooms: 2, bathrooms: 1, sqft: 920, lockboxCode: "Vallejo6", tenantIds: ["person_tenant_41"], notes: "Top-floor — skylight in primary bath, leaks every El Niño. Skylight scheduled for replacement Fall 2026." });
 
+  // Sponge requires recipient addresses to be allowlisted on the source wallet.
+  // Every contractor payout settles into Handle's contractor-escrow wallet on
+  // Solana (verifiable on Solscan via the txn hash recorded on the job). In
+  // production this on-chain step is followed by a USDC → USD ACH off-ramp into
+  // the contractor's bank account — Sponge's banking rail handles that leg.
+  const HANDLE_CONTRACTOR_ESCROW = "AzSqf7aAND7iwjFyPqakki7XQ5ogMwSxqhp3cmGCvvcU";
+
   // Contractor pool
   const contractors = [
-    { id: "ctr_1", name: "Bay Area Plumbing Co.", phone: "+14155552001", trades: ["plumbing"], rating: 4.8, city: "San Francisco", walletAddress: "AzSqf7aAND7iwjFyPqakki7XQ5ogMwSxqhp3cmGCvvcU" },
+    { id: "ctr_1", name: "Bay Area Plumbing Co.", phone: "+14155552001", trades: ["plumbing"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW },
     { id: "ctr_2", name: "Mission Electric", phone: "+14155552002", trades: ["electrical"], rating: 4.6, city: "San Francisco" },
     { id: "ctr_3", name: "FastFix HVAC", phone: "+14155552003", trades: ["hvac"], rating: 4.4, city: "San Francisco" },
-    { id: "ctr_4", name: "GoldenGate Locksmith", phone: "+14155552004", trades: ["locksmith"], rating: 4.9, city: "San Francisco", walletAddress: "AzSqf7aAND7iwjFyPqakki7XQ5ogMwSxqhp3cmGCvvcU" },
+    { id: "ctr_4", name: "GoldenGate Locksmith", phone: "+14155552004", trades: ["locksmith"], rating: 4.9, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW },
     { id: "ctr_5", name: "All-Around Handy", phone: "+14155552005", trades: ["general", "appliance"], rating: 4.5, city: "Oakland" },
   ] as const;
   for (const c of contractors) {
