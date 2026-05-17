@@ -11,6 +11,9 @@ importers:
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
+      agentphone:
+        specifier: ^1.0.10
+        version: 1.0.10
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1803,6 +1806,10 @@ packages:
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
+
+  agentphone@1.0.10:
+    resolution: {integrity: sha512-kafsp20MH7DHX4bOIiLOtwsqUdbuPsM2nfWLGEZaE1lNhqlEJvQS2GLBjTHGPOn8E0QlShhYg7d0IWC1g29uXg==}
+    engines: {node: '>=18.0.0'}
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
@@ -5790,6 +5797,8 @@ snapshots:
   acorn@8.16.0: {}
 
   agent-base@7.1.4: {}
+
+  agentphone@1.0.10: {}
 
   ajv-formats@3.0.1(ajv@8.20.0):
     optionalDependencies:
