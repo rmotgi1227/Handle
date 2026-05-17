@@ -17,6 +17,12 @@ import {
   PhoneCall,
   Briefcase,
   ChevronDown,
+  ChevronRight,
+  Search,
+  Mail,
+  ArrowUpDown,
+  Building2,
+  UserPlus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

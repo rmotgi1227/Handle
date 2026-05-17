@@ -335,4 +335,155 @@ export function seedOnce(): void {
   store.appendEvent({ jobId: "job_seed_done", kind: "work_completed", title: "Work completed", at: iso(300) });
   store.appendEvent({ jobId: "job_seed_done", kind: "paid", title: "Paid via Sponge — $185.00", at: iso(290) });
   store.appendEvent({ jobId: "job_seed_done", kind: "survey_completed", title: "Survey: 5/5", detail: "Locksmith was at the door in 22 minutes. Painless.", at: iso(280) });
+
+  // Historical paid jobs so the Payments page has a populated payout history.
+  // Spread across days, contractors, and trades for a realistic ledger.
+  const history: Array<{
+    id: string;
+    propertyId: string;
+    reportedByPersonId: string;
+    urgency: import("../types/job").JobUrgency;
+    trade: import("../types/contractor").Trade;
+    title: string;
+    description: string;
+    contractorId: string;
+    amountCents: number;
+    daysAgo: number;
+    txnHash?: string;
+    satisfactionScore?: number;
+    satisfactionFeedback?: string;
+  }> = [
+    {
+      id: "job_hist_1",
+      propertyId: "prop_2",
+      reportedByPersonId: "person_tenant_2",
+      urgency: "urgent",
+      trade: "appliance",
+      title: "Dishwasher leak — Bosch under warranty",
+      description: "Tenant reported water on the kitchen floor from the dishwasher kickplate.",
+      contractorId: "ctr_5",
+      amountCents: 14500,
+      daysAgo: 1,
+      txnHash: "4kZQ8t2Vm9pXn3rJqAyW1pZcN8gM5sLfH7uYxB6dC2eR",
+      satisfactionScore: 5,
+      satisfactionFeedback: "Same day fix. Tech was great.",
+    },
+    {
+      id: "job_hist_2",
+      propertyId: "prop_1",
+      reportedByPersonId: "person_tenant_3",
+      urgency: "standard",
+      trade: "plumbing",
+      title: "Bathroom sink slow drain",
+      description: "Snake + p-trap clean. Recurring; suggested follow-up if it returns.",
+      contractorId: "ctr_1",
+      amountCents: 22000,
+      daysAgo: 2,
+      txnHash: "7sR4nXf3Wp1mQ9hLkE5dCtV2yA6gBxJ8uZoP3iN5rT9q",
+    },
+    {
+      id: "job_hist_3",
+      propertyId: "prop_1",
+      reportedByPersonId: "person_tenant_4",
+      urgency: "urgent",
+      trade: "electrical",
+      title: "Tripping breaker — kitchen outlets",
+      description: "Replaced load-side GFCI; old outlet was arcing.",
+      contractorId: "ctr_2",
+      amountCents: 31500,
+      daysAgo: 3,
+      txnHash: "9pTm6FvX4cZ2nQ8aLkH3eRwBjY7uCgD5sAxoP1iN6qE2",
+      satisfactionScore: 4,
+    },
+    {
+      id: "job_hist_4",
+      propertyId: "prop_2",
+      reportedByPersonId: "person_tenant_6",
+      urgency: "standard",
+      trade: "hvac",
+      title: "Nest not heating — calls but no fan",
+      description: "Replaced 24V transformer; thermostat now controlling air handler.",
+      contractorId: "ctr_3",
+      amountCents: 28000,
+      daysAgo: 5,
+      txnHash: "3aRf9XpV2mZ7nQ4hLkB6eYwCjT5uDgN8sExoP1iH4qK2",
+    },
+    {
+      id: "job_hist_5",
+      propertyId: "prop_1",
+      reportedByPersonId: "person_tenant_5",
+      urgency: "standard",
+      trade: "general",
+      title: "Garbage disposal replacement",
+      description: "Old Insinkerator humming, not spinning. Swapped for 3/4 HP unit.",
+      contractorId: "ctr_5",
+      amountCents: 19500,
+      daysAgo: 6,
+      satisfactionScore: 5,
+      satisfactionFeedback: "Quick swap, cleaned up after.",
+    },
+    {
+      id: "job_hist_6",
+      propertyId: "prop_2",
+      reportedByPersonId: "person_tenant_7",
+      urgency: "urgent",
+      trade: "plumbing",
+      title: "Toilet flange leak at second floor",
+      description: "Wax ring failed; rebuilt flange and reset toilet. No subfloor damage.",
+      contractorId: "ctr_1",
+      amountCents: 48500,
+      daysAgo: 8,
+      txnHash: "2nTk8GvY3cW5pX9rJqH6dEzBfA1uCmL4sNxoP7iR2qV5",
+    },
+    {
+      id: "job_hist_7",
+      propertyId: "prop_1",
+      reportedByPersonId: "person_tenant_1",
+      urgency: "scheduled",
+      trade: "locksmith",
+      title: "Rekey unit after turnover",
+      description: "Front + back deadbolts rekeyed, three keys to PM.",
+      contractorId: "ctr_4",
+      amountCents: 9500,
+      daysAgo: 10,
+      satisfactionScore: 5,
+    },
+  ];
+
+  const contractorName = (id: string): string =>
+    contractors.find((c) => c.id === id)?.name ?? "Contractor";
+  const dollars = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
+
+  for (const h of history) {
+    const closedAt = h.daysAgo * 1440; // minutes ago for the paid moment
+    store.upsertJob({
+      id: h.id,
+      propertyId: h.propertyId,
+      reportedByPersonId: h.reportedByPersonId,
+      status: "paid",
+      urgency: h.urgency,
+      trade: h.trade,
+      title: h.title,
+      description: h.description,
+      assignedContractorId: h.contractorId,
+      totalCostCents: h.amountCents,
+      callIds: [],
+      paymentTxnHash: h.txnHash,
+      satisfactionScore: h.satisfactionScore,
+      satisfactionFeedback: h.satisfactionFeedback,
+    });
+    store.appendEvent({ jobId: h.id, kind: "call_received", title: "Tenant call received", at: iso(closedAt + 90) });
+    store.appendEvent({ jobId: h.id, kind: "contractor_assigned", title: `Assigned ${contractorName(h.contractorId)}`, at: iso(closedAt + 75) });
+    store.appendEvent({ jobId: h.id, kind: "work_completed", title: "Work completed", at: iso(closedAt + 15) });
+    store.appendEvent({ jobId: h.id, kind: "paid", title: `Paid via Sponge — ${dollars(h.amountCents)}`, at: iso(closedAt) });
+    if (h.satisfactionScore) {
+      store.appendEvent({
+        jobId: h.id,
+        kind: "survey_completed",
+        title: `Survey: ${h.satisfactionScore}/5`,
+        detail: h.satisfactionFeedback,
+        at: iso(closedAt - 30),
+      });
+    }
+  }
 }
