@@ -1,40 +1,85 @@
+import { z } from "zod";
 import { IntegrationError } from "@/lib/integrations/adapter";
-import { env } from "@/lib/env";
+import { env, requireEnv } from "@/lib/env";
 import type { SupermemoryClient } from "./index";
 
-/**
- * Live Supermemory client — STUB.
- *
- * TODO: wire Supermemory live API — set SUPERMEMORY_API_KEY and
- * SUPERMEMORY_PROJECT_ID, then replace this stub. Per docs (verify
- * before shipping):
- *   - Base URL: https://api.supermemory.ai
- *   - Auth: Authorization: Bearer ${SUPERMEMORY_API_KEY}
- *   - Header: x-project-id: ${SUPERMEMORY_PROJECT_ID}
- *   - POST /v1/memories      → remember
- *   - POST /v1/search        → recall (body { query, topK })
- *
- * Validate every response with Zod before returning.
- */
-function notWired(method: string): never {
-  if (!env.SUPERMEMORY_API_KEY) {
-    throw new IntegrationError(
-      "supermemory",
-      `SUPERMEMORY_API_KEY missing — cannot call ${method} in live mode. ` +
-        `Set SUPERMEMORY_API_KEY (and SUPERMEMORY_PROJECT_ID) or switch INTEGRATION_MODE=mock.`,
-    );
-  }
-  throw new IntegrationError(
-    "supermemory",
-    `${method} live implementation is a TODO. Wire the real Supermemory API here.`,
-  );
+const BASE = "https://api.supermemory.ai";
+
+function headers(): HeadersInit {
+  const key = requireEnv("SUPERMEMORY_API_KEY");
+  return {
+    Authorization: `Bearer ${key}`,
+    "Content-Type": "application/json",
+  };
 }
 
+async function apiFetch(path: string, init: RequestInit): Promise<unknown> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: { ...headers(), ...(init.headers ?? {}) },
+    redirect: "follow",
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new IntegrationError("supermemory", `${path} → HTTP ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+const SearchResultSchema = z.object({
+  results: z.array(
+    z.object({
+      documentId: z.string(),
+      score: z.number(),
+      chunks: z.array(z.object({ content: z.string() })),
+    }),
+  ),
+});
+
+const RememberResultSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+});
+
 export const supermemory: SupermemoryClient = {
-  async recall(_input) {
-    notWired("recall");
+  async recall({ query, topK }) {
+    try {
+      const raw = await apiFetch("/v3/search", {
+        method: "POST",
+        body: JSON.stringify({ q: query, limit: topK ?? 3 }),
+      });
+      const parsed = SearchResultSchema.safeParse(raw);
+      if (!parsed.success) {
+        throw new IntegrationError("supermemory", `recall: unexpected response shape: ${parsed.error.message}`);
+      }
+      return {
+        memories: parsed.data.results.map((r) => ({
+          id: r.documentId,
+          text: r.chunks[0]?.content ?? "",
+          score: r.score,
+        })),
+      };
+    } catch (err) {
+      if (err instanceof IntegrationError) throw err;
+      throw new IntegrationError("supermemory", "recall failed", err);
+    }
   },
-  async remember(_input) {
-    notWired("remember");
+
+  async remember({ text }) {
+    try {
+      const raw = await apiFetch("/v3/memories", {
+        method: "POST",
+        body: JSON.stringify({ content: text }),
+      });
+      const parsed = RememberResultSchema.safeParse(raw);
+      if (!parsed.success) {
+        throw new IntegrationError("supermemory", `remember: unexpected response shape: ${parsed.error.message}`);
+      }
+      return { id: parsed.data.id };
+    } catch (err) {
+      if (err instanceof IntegrationError) throw err;
+      throw new IntegrationError("supermemory", "remember failed", err);
+    }
   },
 };

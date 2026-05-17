@@ -42,4 +42,19 @@ export const agentphone: AgentPhoneClient = {
   async placeOutboundCall(_input) {
     notWired("placeOutboundCall");
   },
+  async parseVoiceWebhook(req) {
+    let body: Record<string, unknown> = {};
+    try { body = (await req.clone().json()) as Record<string, unknown>; } catch { body = {}; }
+    // AgentPhone webhook shape: { event, channel, callId, fromNumber, transcript, recentHistory }
+    const fromNumber = typeof body.fromNumber === "string" ? body.fromNumber : "";
+    const transcript = typeof body.transcript === "string" ? body.transcript : "";
+    const callId = typeof body.callId === "string" ? body.callId : "";
+    const history = Array.isArray(body.recentHistory)
+      ? (body.recentHistory as { role: string; content: string }[]).map(h => ({
+          role: (h.role === "assistant" ? "model" : "user") as "user" | "model",
+          text: String(h.content ?? ""),
+        }))
+      : [];
+    return { callId, fromNumber, transcript, recentHistory: history };
+  },
 };

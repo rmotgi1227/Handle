@@ -209,8 +209,31 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
   }
   const transcriptText = transcriptLines.map((l) => `${l.speaker}: ${l.text}`).join("\n");
 
-  // 2. Classify intent with Gemini.
-  const intent = await gemini.classifyIntent({ transcript: transcriptText });
+  // 2. Classify intent with Gemini. Enrich transcript with any visual context
+  //    captured from an MMS photo the tenant sent alongside the call.
+  const existingJob = call.jobId ? store.getJob(call.jobId) : undefined;
+  let transcriptWithVisual = transcriptText;
+  if (existingJob?.visualContext) {
+    transcriptWithVisual = [
+      `[VISUAL TRIAGE: ${existingJob.visualContext.description}]`,
+      `[SEVERITY FROM PHOTO: ${existingJob.visualContext.severity}]`,
+      existingJob.visualContext.guidelines.length > 0
+        ? `[GUIDELINES: ${existingJob.visualContext.guidelines.map((g) => g.text).join(" | ")}]`
+        : "",
+      "",
+      transcriptText,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  const intent = await gemini.classifyIntent({ transcript: transcriptWithVisual });
+
+  // If the photo analysis flagged an emergency, let that take precedence over
+  // whatever the transcript-only classification produced.
+  if (existingJob?.visualContext?.severity === "emergency") {
+    intent.urgency = "emergency";
+  }
 
   // 3. Resolve property/reporter from the call.
   const property = call.propertyId ? store.properties.get(call.propertyId) : undefined;

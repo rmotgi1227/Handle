@@ -21,6 +21,18 @@ export interface GeminiClient {
   summarizeJob(input: {
     events: { kind: string; title: string; at: string }[];
   }): Promise<{ summary: string }>;
+  analyzeMedia(input: {
+    mediaUrl: string;
+    mimeType: "image/jpeg" | "image/png" | "image/webp";
+  }): Promise<{
+    description: string;
+    severity: "emergency" | "urgent" | "standard";
+  }>;
+  generateVoiceResponse(input: {
+    systemContext: string;
+    history: { role: "user" | "model"; text: string }[];
+    userMessage: string;
+  }): Promise<{ text: string }>;
 }
 
 export const gemini: GeminiClient = pickImpl<GeminiClient>("gemini", {

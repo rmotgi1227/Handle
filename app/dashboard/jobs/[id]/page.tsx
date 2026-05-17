@@ -125,6 +125,29 @@ export default async function JobDetailPage({
         ) : null}
       </div>
 
+      {job.visualContext && (
+        <details
+          open
+          className="rounded border border-zinc-200 p-3 text-sm"
+        >
+          <summary className="cursor-pointer font-medium text-zinc-700">
+            Visual triage
+          </summary>
+          <div className="mt-2 space-y-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={job.visualContext.mediaUrl}
+              alt="Tenant photo"
+              className="max-h-48 rounded object-cover"
+            />
+            <p className="text-zinc-600">{job.visualContext.description}</p>
+            <p className="text-xs text-zinc-400">
+              Severity: {job.visualContext.severity}
+            </p>
+          </div>
+        </details>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="mb-4 text-sm font-semibold tracking-tight">
