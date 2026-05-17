@@ -107,14 +107,18 @@ export const gemini: GeminiClient = {
     };
   },
 
-  async draftContractorScript({ jobTitle, jobDescription, propertyAddress, urgency }) {
-    const script = [
+  async draftContractorScript({ jobTitle, jobDescription, propertyAddress, urgency, recall }) {
+    const past = recall?.pastJobs?.[0]?.text;
+    const pref = recall?.ownerPreferences?.[0]?.text;
+    const lines = [
       `Hi, this is the dispatch agent for the property at ${propertyAddress}.`,
       `We have a ${urgency} job: ${jobTitle}.`,
-      `Details: ${jobDescription}`,
-      `Can you accept this job and give me an ETA window?`,
-    ].join(" ");
-    return { script };
+      `Details: ${jobDescription}.`,
+    ];
+    if (past) lines.push(`For context: ${past}`);
+    if (pref) lines.push(`Heads up: ${pref}`);
+    lines.push(`Can you accept this job and give me an ETA window?`);
+    return { script: lines.join(" ") };
   },
 
   async summarizeJob({ events }) {

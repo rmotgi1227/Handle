@@ -109,19 +109,37 @@ export const gemini: GeminiClient = {
     return callJson(prompt, ClassifyIntentSchema, "classifyIntent");
   },
 
-  async draftContractorScript({ jobTitle, jobDescription, propertyAddress, urgency }) {
-    const prompt = [
+  async draftContractorScript({ jobTitle, jobDescription, propertyAddress, urgency, recall }) {
+    const recallLines: string[] = [];
+    const past = recall?.pastJobs?.[0]?.text;
+    const pref = recall?.ownerPreferences?.[0]?.text;
+    const know = recall?.knowledgeHits?.[0]?.text;
+    if (past) recallLines.push(`- Prior job at this property: "${past}"`);
+    if (pref) recallLines.push(`- Owner preference: "${pref}"`);
+    if (know) recallLines.push(`- Issue knowledge: "${know}"`);
+
+    const promptLines = [
       "Draft a concise outbound dial script for a contractor.",
       "Tone: professional, efficient, friendly. Under 60 seconds when spoken.",
       "Include the property address, urgency, what we need, and ask for ETA.",
+    ];
+    if (recallLines.length > 0) {
+      promptLines.push(
+        "",
+        "You MAY reference at most ONE of the following pieces of context — only if it fits naturally and adds value (e.g. continuity, owner constraint, faster diagnosis). Do NOT list them all; pick the most relevant or skip entirely. Never invent details that aren't in this list.",
+        ...recallLines,
+      );
+    }
+    promptLines.push(
+      "",
       "Respond with ONLY a JSON object: { \"script\": string }.",
       "",
       `Property: ${propertyAddress}`,
       `Urgency: ${urgency}`,
       `Job title: ${jobTitle}`,
       `Job description: ${jobDescription}`,
-    ].join("\n");
-    return callJson(prompt, ScriptSchema, "draftContractorScript");
+    );
+    return callJson(promptLines.join("\n"), ScriptSchema, "draftContractorScript");
   },
 
   async summarizeJob({ events }) {
