@@ -18,7 +18,6 @@ import { seedOnce } from "./seed";
 seedOnce();
 
 declare global {
-  // eslint-disable-next-line no-var
   var __handleAgentSynced: boolean | undefined;
 }
 

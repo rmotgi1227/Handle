@@ -25,7 +25,6 @@ import { after } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { env } from "@/lib/env";
-import { agentphone } from "@/lib/integrations/agentphone";
 import { verifyAgentPhoneWebhook } from "@/lib/integrations/agentphone/webhook-verify";
 import { isCallerAllowed } from "@/lib/integrations/agentphone/whitelist";
 import { runAgent } from "@/lib/orchestrator/run";

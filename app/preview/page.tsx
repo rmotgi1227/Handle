@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { HandleLogo } from "@/components/preview/handle-logo";
-import { HandleFavicon } from "@/components/preview/handle-favicon";
 
 const VARIANTS = [
   {

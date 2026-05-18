@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import {
-  ArrowLeft, Phone, CheckCircle2, Receipt, MailQuestion, StickyNote, ChevronDown, Banknote, CreditCard, Clock, Sparkles,
+  ArrowLeft, Phone, CheckCircle2, Receipt, MailQuestion, ChevronDown, Banknote, CreditCard, Clock, Sparkles,
 } from "lucide-react";
 import { store } from "@/lib/store/memory";
 import { createInvoiceForJob, markJobComplete, sendSurveyRequest, addNoteToJob, payContractor } from "@/lib/orchestrator/actions";

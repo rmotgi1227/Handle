@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutGrid, Briefcase, Users, Settings, PhoneIncoming, Timer, Smile, PhoneCall, ChevronDown, ArrowLeft, Search } from "lucide-react";
+import { Briefcase, PhoneIncoming, Timer, Smile, PhoneCall, ChevronDown, ArrowLeft, Search } from "lucide-react";
 import { HandleLogo } from "@/components/preview/handle-logo";
 import { getDashboardData, jobMeta, relativeTime } from "../../_data";
 

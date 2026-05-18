@@ -150,14 +150,13 @@ export const agentphone: AgentPhoneClient = {
         "AGENTPHONE_AGENT_ID missing — set it to send SMS via AgentPhone.",
       );
     }
-    // Uses the AgentPhone messages.sendMessage SDK method (POST /v1/messages)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await sdk().messages.sendMessage({
+    // Uses the AgentPhone messages.sendMessage SDK method (POST /v1/messages).
+    // SDK response type shifts between versions; cast at the boundary only.
+    const result = (await sdk().messages.sendMessage({
       agent_id: agentId,
       to_number: input.to,
       body: input.body,
-    } as any) as { id?: string; messageId?: string };
+    })) as { id?: string; messageId?: string };
     const messageId = result?.id ?? result?.messageId ?? "sent";
     return { messageId };
   },

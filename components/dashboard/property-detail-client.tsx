@@ -840,6 +840,7 @@ void UserPlus;
 
 /* ---- Unit row (expandable / editable inline) ------------------------------ */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function UnitRow({
   unitCtx,
   buildingSpendCapCents,
@@ -1275,6 +1276,7 @@ function AddTenantDialog({
 
 /* ---- Shared bits --------------------------------------------------------- */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Pill({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-[#E8E3DA] bg-[#F6F4EF] px-3 py-2.5">
@@ -1284,6 +1286,7 @@ function Pill({ label, value }: { label: string; value: string }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-[#E8E3DA] bg-white p-5" style={{ boxShadow: "0 1px 4px rgba(21,22,26,0.04)" }}>

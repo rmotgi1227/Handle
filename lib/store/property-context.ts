@@ -33,16 +33,6 @@ export interface UnitContext {
   ownership: "rental" | "owner_occupied";
 }
 
-const ACTIVE_STATUSES = new Set<Job["status"]>([
-  "triaging",
-  "sourcing_contractor",
-  "scheduled",
-  "in_progress",
-  "awaiting_survey",
-  "awaiting_payment",
-  "payment_authorized",
-]);
-
 export function getPropertyContext(id: string): PropertyContext | null {
   const property = store.properties.get(id);
   if (!property) return null;
