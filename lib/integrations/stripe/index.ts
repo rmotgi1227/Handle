@@ -15,9 +15,12 @@ export interface StripeInvoiceStatus {
 export interface StripeClient {
   createInvoice(input: {
     ownerEmail: string;
+    ownerName?: string;
     amountCents: number;
     description: string;
     jobId: string;
+    metadata?: Record<string, string>;
+    footer?: string;
   }): Promise<StripeInvoiceResult>;
 
   getInvoiceStatus(invoiceId: string): Promise<StripeInvoiceStatus>;

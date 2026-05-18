@@ -58,8 +58,10 @@ export default async function JobDetailPage({
   async function sendInvoice() {
     "use server";
     try {
-      // $1.00 demo amount — fits comfortably within the live Sponge wallet's USDC balance.
-      await createInvoiceForJob({ jobId: id, amountCents: 100 });
+      // $4.50 demo amount — looks like a real service-call fee while staying
+      // under the live Sponge wallet's 5 USDC balance (so the on-chain transfer
+      // actually succeeds and you can verify it on Solscan).
+      await createInvoiceForJob({ jobId: id, amountCents: 450 });
       // 5s "agent decision" delay so the timeline keeps the invoice_sent and
       // paid events as visibly distinct steps. Narrate as the agent reviewing
       // the invoice before authorising payment.

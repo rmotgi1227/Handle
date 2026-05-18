@@ -100,11 +100,26 @@ export async function createInvoiceForJob(
     );
   }
 
+  const propertyLine = property
+    ? `${property.address}${property.unit ? `, Unit ${property.unit}` : ""}`
+    : "the property";
+  const tradeLabel = job.trade.charAt(0).toUpperCase() + job.trade.slice(1).replace(/_/g, " ");
+
   const { invoiceId, hostedUrl } = await stripe.createInvoice({
     ownerEmail: owner.email,
+    ownerName: owner.name,
     amountCents: input.amountCents,
-    description: `${contractor.name} — ${job.title}`,
+    description: `${tradeLabel} service — ${job.title} (${propertyLine}). Contractor: ${contractor.name}.`,
     jobId: job.id,
+    metadata: {
+      contractorId: contractor.id,
+      contractorName: contractor.name,
+      propertyId: job.propertyId,
+      propertyAddress: propertyLine,
+      trade: job.trade,
+      urgency: job.urgency,
+    },
+    footer: `Job ${job.id} · ${tradeLabel} · ${job.urgency} priority. Settled by Handle's AI dispatcher via Sponge (USDC on Solana). For questions, reply to this email.`,
   });
 
   store.upsertJob({
@@ -128,9 +143,24 @@ export async function createInvoiceForJob(
   try {
     await agentmail.sendEmail({
       to: owner.email,
-      subject: `Invoice from ${contractor.name} — ${job.title}`,
-      text: `Hi ${owner.name ?? "there"}, ${contractor.name} sent an invoice for "${job.title}" ($${(input.amountCents / 100).toFixed(2)}). Handle's agent will settle it via Sponge. Invoice: ${hostedUrl}`,
-      tags: ["invoice", job.id],
+      subject: `Invoice — ${contractor.name} · ${propertyLine} · $${(input.amountCents / 100).toFixed(2)}`,
+      text: [
+        `Hi ${owner.name ?? "there"},`,
+        ``,
+        `${contractor.name} just sent an invoice for the ${tradeLabel.toLowerCase()} work at ${propertyLine}.`,
+        ``,
+        `  Job:       ${job.title}`,
+        `  Trade:     ${tradeLabel}`,
+        `  Priority:  ${job.urgency}`,
+        `  Amount:    $${(input.amountCents / 100).toFixed(2)} USD`,
+        ``,
+        `Handle's AI dispatcher is settling this now via Sponge (USDC on Solana). You'll get a separate receipt once the on-chain transfer confirms.`,
+        ``,
+        `Stripe invoice: ${hostedUrl}`,
+        ``,
+        `— Handle`,
+      ].join("\n"),
+      tags: ["invoice", job.id, contractor.id],
     });
   } catch (err) {
     console.error("[createInvoiceForJob] agentmail failed (non-fatal):", err);

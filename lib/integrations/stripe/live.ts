@@ -9,16 +9,19 @@ function getStripe(): Stripe {
 }
 
 export const stripe: StripeClient = {
-  async createInvoice({ ownerEmail, amountCents, description, jobId }): Promise<StripeInvoiceResult> {
+  async createInvoice({ ownerEmail, ownerName, amountCents, description, jobId, metadata, footer }): Promise<StripeInvoiceResult> {
     const client = getStripe();
 
-    // Find or create a Stripe customer for this owner email
+    // Find or create a Stripe customer for this owner email; backfill the name
+    // so the invoice header reads "Bill to: Priya Kapoor" instead of just an email.
     const existing = await client.customers.list({ email: ownerEmail, limit: 1 });
-    const customer = existing.data[0]
-      ? existing.data[0]
-      : await client.customers.create({ email: ownerEmail });
+    let customer = existing.data[0];
+    if (!customer) {
+      customer = await client.customers.create({ email: ownerEmail, name: ownerName });
+    } else if (ownerName && !customer.name) {
+      customer = await client.customers.update(customer.id, { name: ownerName });
+    }
 
-    // Create an invoice item
     await client.invoiceItems.create({
       customer: customer.id,
       amount: amountCents,
@@ -26,12 +29,12 @@ export const stripe: StripeClient = {
       description,
     });
 
-    // Create and finalize the invoice
     const invoice = await client.invoices.create({
       customer: customer.id,
       collection_method: "send_invoice",
       days_until_due: 7,
-      metadata: { jobId },
+      metadata: { jobId, ...metadata },
+      footer: footer ?? "Settled via Sponge — USDC on Solana. Receipt mirrored to AgentMail.",
       auto_advance: true,
     });
 
