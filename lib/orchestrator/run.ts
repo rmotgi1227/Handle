@@ -650,12 +650,19 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     kind: "contractor_search_started",
     title: `Searching for ${intent.trade} contractors in ${city}`,
   });
-  const { contractorIds } = await findContractorsForJob({
+  const pool = await findContractorsForJob({
     jobId: job.id,
     trade: intent.trade,
     city,
     mossHits: ctx.contractorHits,
   });
+  // DEMO: pin the dial pool to ctr_1 only — that's Alex's phone for the
+  // hackathon demo. The rest of the seeded contractor numbers don't reach
+  // anyone, so a parallel race would just be 2 dead rings + 1 live one.
+  // Revert this slice when running with real contractor numbers.
+  const contractorIds = pool.contractorIds.includes("ctr_1")
+    ? ["ctr_1"]
+    : pool.contractorIds.slice(0, 1);
 
   // 6b. Guard: zero contractors. Without this, the job silently freezes in
   //     `sourcing_contractor` because the dial loop has nothing to dial.

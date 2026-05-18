@@ -168,7 +168,7 @@ export function seedOnce(): void {
     id: "person_tenant_1",
     role: "tenant",
     name: "Marcus Chen",
-    phone: "+14155551410",
+    phone: "+19853381645",
     propertyId: "prop_1",
     unitId: "unit_p1_3b",
   });
@@ -638,7 +638,7 @@ export function seedOnce(): void {
   // -------------------------------------------------------------------------
 
   // prop_3 — Hayes Valley (6 named tenants in 12-unit building)
-  store.upsertPerson({ id: "person_tenant_8",  role: "tenant", name: "Maya Sundaram",  phone: "+14155551500", propertyId: "prop_3", unitId: "unit_p3_101" });
+  store.upsertPerson({ id: "person_tenant_8",  role: "tenant", name: "Maya Sundaram",  phone: "+14079214601", propertyId: "prop_3", unitId: "unit_p3_101" });
   store.upsertPerson({ id: "person_tenant_9",  role: "tenant", name: "Ezra Goldfarb",  phone: "+14155551501", propertyId: "prop_3", unitId: "unit_p3_102" });
   store.upsertPerson({ id: "person_tenant_10", role: "tenant", name: "Bea Lockwood",   phone: "+14155551502", propertyId: "prop_3", unitId: "unit_p3_201" });
   store.upsertPerson({ id: "person_tenant_11", role: "tenant", name: "Adesina Coker",  phone: "+14155551503", propertyId: "prop_3", unitId: "unit_p3_202" });
@@ -785,7 +785,7 @@ export function seedOnce(): void {
   // Wallets on file get instant USDC payouts via Sponge; others get a check.
   const contractors = [
     // Plumbing
-    { id: "ctr_1", name: "Bay Area Plumbing Co.", phone: "+14155552001", trades: ["plumbing"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Knows Priya's pre-1930s buildings cold. 24hr emergency line. COI on file." },
+    { id: "ctr_1", name: "Bay Area Plumbing Co.", phone: "+16198974800", trades: ["plumbing"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Knows Priya's pre-1930s buildings cold. 24hr emergency line. COI on file." },
     { id: "ctr_6", name: "Roto-Rooter SF",         phone: "+14155552006", trades: ["plumbing"], rating: 4.3, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Big-name backup. Best for emergencies when Bay Area Plumbing is booked." },
     { id: "ctr_7", name: "Sunset Drain Pros",      phone: "+14155552007", trades: ["plumbing"], rating: 4.7, city: "San Francisco", notes: "Drain specialists. Snake + hydro-jet. No new construction." },
     // Electrical
