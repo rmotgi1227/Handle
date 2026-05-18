@@ -5,6 +5,10 @@ import type { NegotiationContext } from "@/lib/integrations/agentphone";
 import { gemini } from "@/lib/integrations/gemini";
 import { supermemory } from "@/lib/integrations/supermemory";
 import { browseruse } from "@/lib/integrations/browseruse";
+import {
+  kvGetContractorCall,
+  kvSetContractorCall,
+} from "@/lib/store/contractor-calls-kv";
 // NOTE: `moss` is NOT statically imported. `@inferedge/moss` pulls
 // `@huggingface/transformers` → `onnxruntime-node` (libonnxruntime.so) into
 // the bundle. Statically importing it here bloats every route that imports
@@ -439,10 +443,11 @@ const DIAL_POLL_INTERVAL_MS = 500;
  * resolve with a synthesized no_answer so runAgent's Promise.any race can
  * move on without hanging.
  *
- * Cross-lambda caveat: the in-memory store is per-instance. If the dispatch
- * handler and the outbound webhook hit different lambda instances, the
- * poller in the dispatch lambda won't see the webhook's write and will
- * time out. Known limitation until SQLite lands.
+ * Cross-lambda: the in-memory store is per-instance, so the webhook lambda's
+ * write may not be visible to this polling lambda. Each iteration checks
+ * Upstash Redis (kvGetContractorCall) as a shared fan-out — the webhook
+ * also writes there, so polling sees the outcome regardless of which
+ * lambda instance landed which side of the call.
  */
 async function waitForDialOutcome(contractorCallId: string): Promise<{
   outcome: ContractorCallOutcome;
@@ -452,12 +457,24 @@ async function waitForDialOutcome(contractorCallId: string): Promise<{
 }> {
   const deadline = Date.now() + DIAL_WAIT_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const rec = store.contractorCalls.get(contractorCallId);
-    if (rec?.outcome) {
+    const local = store.contractorCalls.get(contractorCallId);
+    if (local?.outcome) {
       return {
-        outcome: rec.outcome,
-        etaWindow: rec.etaWindow,
-        quotedPriceCents: rec.quotedPriceCents,
+        outcome: local.outcome,
+        etaWindow: local.etaWindow,
+        quotedPriceCents: local.quotedPriceCents,
+        fromWebhook: true,
+      };
+    }
+    const shared = await kvGetContractorCall(contractorCallId);
+    if (shared?.outcome) {
+      // Mirror the shared write back into the local store so the dashboard
+      // (which reads from in-memory) reflects it without waiting on Redis.
+      store.contractorCalls.set(contractorCallId, shared);
+      return {
+        outcome: shared.outcome,
+        etaWindow: shared.etaWindow,
+        quotedPriceCents: shared.quotedPriceCents,
         fromWebhook: true,
       };
     }
@@ -515,14 +532,16 @@ export async function dialContractorForJob(
   });
 
   // Write a PENDING ContractorCall placeholder — no outcome, no endedAt.
-  // The /api/calls/outbound webhook fills these in with the real call_ended
-  // signal from AgentPhone. The dashboard timeline waits on the real outcome.
-  store.contractorCalls.set(contractorCallId, {
+  // Mirror to Redis so the webhook lambda (which may be a different instance)
+  // can find this record by callId when it processes call_ended.
+  const pending = {
     id: contractorCallId,
     jobId,
     contractorId,
     startedAt: new Date().toISOString(),
-  });
+  };
+  store.contractorCalls.set(contractorCallId, pending);
+  await kvSetContractorCall(pending);
 
   // Block on the real outcome. runAgent's Promise.any race now picks the
   // first contractor whose webhook reports accepted_job — no synthesized

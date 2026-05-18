@@ -25,6 +25,10 @@ import { env } from "@/lib/env";
 import { verifyAgentPhoneWebhook } from "@/lib/integrations/agentphone/webhook-verify";
 import { gemini } from "@/lib/integrations/gemini";
 import { store } from "@/lib/store/memory";
+import {
+  kvGetContractorCall,
+  kvSetContractorCall,
+} from "@/lib/store/contractor-calls-kv";
 import type { ContractorCallOutcome } from "@/lib/types";
 
 const OutboundCallEndedSchema = z
@@ -105,9 +109,18 @@ export async function POST(request: Request): Promise<Response> {
 
   // Find the originating ContractorCall record.
   //   1. Prefer the callId we already stored (most reliable).
-  //   2. Fall back to metadata.{jobId, contractorId} if AgentPhone re-emitted
+  //   2. Cross-lambda: check Redis — the dispatch lambda mirrors every
+  //      placeholder there so a different webhook lambda can still find it.
+  //   3. Fall back to metadata.{jobId, contractorId} if AgentPhone re-emitted
   //      a new callId for the leg (rare, but seen in practice).
   let record = store.contractorCalls.get(callId);
+  if (!record) {
+    const shared = await kvGetContractorCall(callId);
+    if (shared) {
+      record = shared;
+      store.contractorCalls.set(callId, shared);
+    }
+  }
   if (!record && metadata?.jobId && metadata?.contractorId) {
     for (const c of store.contractorCalls.values()) {
       if (c.jobId === metadata.jobId && c.contractorId === metadata.contractorId) {
@@ -163,14 +176,18 @@ export async function POST(request: Request): Promise<Response> {
     summary ??
     `${transcript.length} turn${transcript.length === 1 ? "" : "s"}: ${parsedOutcome.notes ?? parsedOutcome.outcome}`;
 
-  store.contractorCalls.set(callId, {
+  const resolved = {
     ...record,
     endedAt,
     outcome: parsedOutcome.outcome,
     quotedPriceCents: parsedOutcome.priceCents,
     etaWindow: parsedOutcome.etaWindow ?? record.etaWindow,
     transcriptSummary,
-  });
+  };
+  store.contractorCalls.set(callId, resolved);
+  // Mirror to Redis so the dispatch lambda (which may be a different instance)
+  // sees the outcome on its next poll iteration.
+  await kvSetContractorCall(resolved);
 
   store.appendEvent({
     jobId: record.jobId,
