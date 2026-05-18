@@ -24,7 +24,7 @@ export function Hero() {
         }}
       />
 
-      <div className="relative mx-auto grid max-w-6xl gap-12 px-8 pt-20 pb-24 md:grid-cols-[1.4fr_1fr] md:items-start md:pt-28 md:pb-24">
+      <div className="relative mx-auto grid max-w-6xl gap-12 px-8 pt-20 pb-24 md:grid-cols-[1.4fr_1fr] md:items-stretch md:pt-28 md:pb-24">
         <div>
           <div className="mb-10">
             <div className="inline-flex items-center gap-3 border border-[#E8572A] px-3 py-2">
@@ -72,7 +72,7 @@ export function Hero() {
         </div>
 
         {/* Live "incoming call" card */}
-        <div className="hidden md:block">
+        <div className="hidden md:flex md:items-stretch">
           <LiveCallCard />
         </div>
       </div>
@@ -84,12 +84,12 @@ export function Hero() {
 
 function LiveCallCard() {
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div
         aria-hidden
         className="absolute -inset-2 rounded-3xl bg-[#E8572A] opacity-[0.05] blur-2xl"
       />
-      <div className="relative rounded-3xl border border-[#E8E3DA] bg-white p-5 shadow-[0_2px_24px_rgba(21,22,26,0.08)]">
+      <div className="relative flex h-full flex-col rounded-3xl border border-[#E8E3DA] bg-white p-5 shadow-[0_2px_24px_rgba(21,22,26,0.08)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="relative inline-flex size-2.5">
@@ -142,6 +142,21 @@ function LiveCallCard() {
             blink
           />
         </div>
+
+        {/* Bottom action ticker — fills the rest of the column height and
+            telegraphs the next steps the agent is teeing up. */}
+        <div className="mt-auto pt-5">
+          <div className="rounded-2xl border border-[#E8E3DA] bg-[#F6F4EF] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9AA0A0]">
+              Next up
+            </p>
+            <ul className="mt-2 space-y-1.5 text-[12px] font-medium text-[#6B7070]">
+              <TickerRow label="Notify owner" value="AgentMail · 1 line · pre-dispatch" />
+              <TickerRow label="Generate invoice" value="Stripe · $200 · finalize on completion" />
+              <TickerRow label="Pay contractor" value="Sponge · USDC on Solana" />
+            </ul>
+          </div>
+        </div>
       </div>
       <style>{`
         @keyframes cma-wave {
@@ -150,6 +165,15 @@ function LiveCallCard() {
         }
       `}</style>
     </div>
+  );
+}
+
+function TickerRow({ label, value }: { label: string; value: string }) {
+  return (
+    <li className="flex items-baseline justify-between gap-3">
+      <span className="shrink-0 font-bold text-[#15161A]">{label}</span>
+      <span className="min-w-0 truncate text-right">{value}</span>
+    </li>
   );
 }
 
