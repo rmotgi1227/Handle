@@ -89,41 +89,41 @@ function LiveCallCard() {
         aria-hidden
         className="absolute -inset-2 rounded-3xl bg-[#E8572A] opacity-[0.05] blur-2xl"
       />
-      <div className="relative rounded-3xl border border-[#E8E3DA] bg-white p-6 shadow-[0_2px_24px_rgba(21,22,26,0.08)]">
+      <div className="relative rounded-3xl border border-[#E8E3DA] bg-white p-5 shadow-[0_2px_24px_rgba(21,22,26,0.08)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="relative inline-flex size-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8572A] opacity-60" />
               <span className="relative inline-flex size-2.5 rounded-full bg-[#E8572A]" />
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#E8572A]">
+            <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#E8572A]">
               Live · incoming
             </span>
           </div>
           <PhoneIncoming className="size-4 text-[#9AA0A0]" />
         </div>
 
-        <div className="mt-5 flex items-center gap-3">
-          <span className="inline-flex size-10 items-center justify-center rounded-full bg-[#F6F4EF] text-base font-black text-[#15161A]">
-            PK
+        <div className="mt-4 flex items-center gap-3">
+          <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#F6F4EF] text-base font-black text-[#15161A]">
+            MC
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-[#15161A]">
-              Priya Kapoor
+            <p className="truncate text-[15px] font-bold text-[#15161A]">
+              Marcus Chen
             </p>
-            <p className="truncate text-xs font-medium text-[#9AA0A0]">
+            <p className="truncate text-[13px] font-medium text-[#9AA0A0]">
               342 Valencia St, Unit 3B
             </p>
           </div>
         </div>
 
-        <div className="mt-5 flex items-end gap-[3px] overflow-hidden">
+        <div className="mt-4 flex items-end gap-[3px] overflow-hidden">
           {Array.from({ length: 28 }).map((_, i) => (
             <span
               key={i}
               className="inline-block w-[3px] rounded-full bg-[#15161A]"
               style={{
-                height: `${20 + ((i * 13) % 36)}px`,
+                height: `${18 + ((i * 13) % 28)}px`,
                 opacity: 0.7,
                 animation: `cma-wave 1.2s ease-in-out ${i * 0.04}s infinite`,
               }}
@@ -131,10 +131,11 @@ function LiveCallCard() {
           ))}
         </div>
 
-        <div className="mt-5 space-y-2 text-xs font-medium leading-snug text-[#6B7070]">
-          <Line label="Intent" value="Plumbing · leak under sink" hot />
-          <Line label="Urgency" value="High · water damage risk" />
-          <Line label="Recall" value="Moss · 6 plumbers · 8ms" />
+        <div className="mt-4 space-y-1.5 text-[13px] font-medium leading-snug text-[#6B7070]">
+          <Line label="Intent" value="General · wall patch + repaint" hot />
+          <Line label="Urgency" value="Urgent · move-out inspection Friday" />
+          <Line label="Recall" value="Moss · 6 candidates · 8ms" />
+          <Line label="Quote" value="Bay Area Wall Fixes · $200 · ETA 3–5pm" />
           <Line
             label="Status"
             value="Dialing 3 contractors in parallel"
