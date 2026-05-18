@@ -1,19 +1,17 @@
 import { AgentPhoneClient } from "agentphone";
 import { env } from "@/lib/env";
-import { buildTriagePrompt } from "./build-triage-prompt";
 
 /**
- * Pushes the freshly-built triage prompt (system prompt + tenant directory)
- * to the live AgentPhone agent. Skips silently if the AgentPhone env isn't
- * configured (e.g. in a CI build or a dev process without keys).
+ * Switches the triage agent to webhook mode so every voice turn is forwarded
+ * to our /api/calls/incoming endpoint instead of being handled by AgentPhone's
+ * built-in LLM. Gemini drives the conversation from there.
  *
- * Returns `{ ok, agentId, promptBytes }` on success, `{ ok: false, reason }`
- * when skipped or failed. Never throws — callers can fire-and-forget.
+ * Skips silently when AgentPhone env isn't configured (CI, mock-mode dev).
+ * Never throws — callers can fire-and-forget.
  */
 export async function syncTriagePromptIfConfigured(): Promise<{
   ok: boolean;
   agentId?: string;
-  promptBytes?: number;
   reason?: string;
 }> {
   const agentId = env.AGENTPHONE_AGENT_ID;
@@ -24,12 +22,17 @@ export async function syncTriagePromptIfConfigured(): Promise<{
 
   try {
     const sdk = new AgentPhoneClient({ token });
-    const prompt = buildTriagePrompt();
+    // Switch from hosted LLM to webhook mode. AgentPhone will POST each
+    // voice turn to our account webhook URL (/api/calls/incoming) with
+    // { callId, fromNumber, transcript, recentHistory } instead of handling
+    // the conversation itself. systemPrompt is irrelevant in webhook mode.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await sdk.agents.updateAgent({
       agent_id: agentId,
-      systemPrompt: prompt,
+      voiceMode: "webhook" as any,
+      systemPrompt: null,
     });
-    return { ok: true, agentId, promptBytes: prompt.length };
+    return { ok: true, agentId };
   } catch (err) {
     return {
       ok: false,

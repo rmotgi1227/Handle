@@ -1,21 +1,21 @@
 /**
  * /api/calls/incoming — the AgentPhone webhook receiver.
  *
- * Two paths, dispatched by the presence of an `event` field on the body:
+ * Three paths, dispatched by body shape:
  *
- *   1) LIVE webhook (`event` is present) — AgentPhone has POSTed a real
- *      `agent.message` or `agent.call_ended` event. We HMAC-verify the raw
- *      body (when `AGENTPHONE_WEBHOOK_SECRET` is set), then route by event:
- *        - `agent.message`     → append caller line, mark `in_progress`,
- *                                respond 200 immediately.
- *        - `agent.call_ended`  → finalize transcript + summary, fire
- *                                `runAgent` as fire-and-forget so AgentPhone
- *                                isn't held past its 30s retry window.
- *        - anything else       → 202 acknowledge (don't 4xx — that retries).
+ *   1) LIVE lifecycle event (`event` present) — `agent.message` or
+ *      `agent.call_ended`. HMAC-verified, updates the store, fires runAgent
+ *      at call end.
  *
- *   2) MOCK / curl path (no `event`) — the README's local replay shape
- *      `{ fromNumber, transcript }`. Preserved bit-for-bit so docs keep
- *      working. Skips HMAC entirely.
+ *   2) VOICE TURN (`recentHistory` array present, no `event`) — AgentPhone
+ *      is in webhook mode and is asking us for the next agent utterance.
+ *      We call Gemini with the transcript + conversation history and return
+ *      NDJSON `{ text }` for AgentPhone's TTS to speak.
+ *
+ *   3) MOCK / curl path (no `event`, no `recentHistory`) — local replay
+ *      shape `{ fromNumber, transcript }`. Preserved for dev/docs.
+ *
+ * HMAC verification runs against the raw request body BEFORE any
  *
  * HMAC verification runs against the raw request body BEFORE any
  * JSON.parse, so signing stays byte-exact.
@@ -28,6 +28,9 @@ import { env } from "@/lib/env";
 import { agentphone } from "@/lib/integrations/agentphone";
 import { verifyAgentPhoneWebhook } from "@/lib/integrations/agentphone/webhook-verify";
 import { isCallerAllowed } from "@/lib/integrations/agentphone/whitelist";
+import { gemini } from "@/lib/integrations/gemini";
+import { moss } from "@/lib/integrations/moss";
+import { supermemory } from "@/lib/integrations/supermemory";
 import { runAgent } from "@/lib/orchestrator/run";
 import { store } from "@/lib/store/memory";
 import type { Call, CallTranscriptLine } from "@/lib/types";
@@ -79,6 +82,40 @@ const MockBodySchema = z
     transcript: z.string().optional(),
   })
   .passthrough();
+
+const VoiceTurnSchema = z
+  .object({
+    callId: z.string(),
+    fromNumber: z.string().default(""),
+    transcript: z.string(),
+    recentHistory: z.array(
+      z.object({ role: z.string(), content: z.string() }),
+    ).default([]),
+  })
+  .passthrough();
+
+// ---------------------------------------------------------------------------
+// Voice recall cache — persists across turns for one call, cleared on end
+// ---------------------------------------------------------------------------
+
+interface VoiceRecallCache {
+  knowledgeHits: string[];  // Moss diagnostic guidance snippets
+  pastJobs: string[];       // Supermemory past job summaries
+  ownerPrefs: string[];     // Supermemory owner preference snippets
+}
+
+const voiceRecallCache = new Map<string, VoiceRecallCache>();
+
+// ---------------------------------------------------------------------------
+// Bypass detection — checked before Gemini, triggers immediate dispatch
+// ---------------------------------------------------------------------------
+
+const BYPASS_RE =
+  /\b(emergency|emergent|urgent|asap|right now|send someone|find a contractor|get a contractor|just dispatch|dispatch now|skip (the )?questions?|forget (the )?questions?|stop asking|just fix|just get|bypass)\b/i;
+
+function isBypassIntent(transcript: string): boolean {
+  return BYPASS_RE.test(transcript);
+}
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -174,6 +211,15 @@ export async function POST(request: Request): Promise<Response> {
   if (hasEvent) {
     return handleLiveWebhook(request, rawBody, parsed);
   }
+
+  // Voice turn: AgentPhone webhook mode sends { callId, fromNumber, transcript, recentHistory }
+  // with no `event` field. Detect by presence of recentHistory array.
+  const body = parsed as Record<string, unknown>;
+  const isVoiceTurn = Array.isArray(body?.recentHistory);
+  if (isVoiceTurn) {
+    return handleVoiceTurn(parsed);
+  }
+
   return handleMockPost(request, rawBody, parsed);
 }
 
@@ -304,6 +350,7 @@ async function handleLiveWebhook(
     // a second call_ended is a no-op (still 200 so AgentPhone stops retrying).
     const alreadyTriggered = existing?.status === "completed";
     store.upsertCall(call);
+    voiceRecallCache.delete(callId); // free memory, call is done
 
     if (!alreadyTriggered) {
       // Run after the response — `after()` keeps the work alive past the
@@ -402,4 +449,165 @@ async function handleMockPost(
   store.upsertCall(call);
 
   return Response.json({ callId, jobId });
+}
+
+// ---------------------------------------------------------------------------
+// Voice turn path — AgentPhone webhook mode
+// ---------------------------------------------------------------------------
+
+async function handleVoiceTurn(parsed: unknown): Promise<Response> {
+  const body = VoiceTurnSchema.safeParse(parsed);
+  if (!body.success) {
+    return Response.json(
+      { error: "invalid voice turn payload", detail: body.error.message },
+      { status: 400 },
+    );
+  }
+
+  const { callId, fromNumber, transcript, recentHistory } = body.data;
+
+  if (fromNumber && !isCallerAllowed(fromNumber)) {
+    return ndjsonResponse("Sorry, I don't have you on file. Please call back during business hours.");
+  }
+
+  // Ensure stub job + call exist in the store.
+  if (fromNumber) getOrCreateStubJob(callId, fromNumber);
+
+  const call =
+    store.calls.get(callId) ??
+    Array.from(store.calls.values()).find(
+      (c) => c.fromNumber === fromNumber && c.status === "in_progress",
+    );
+  const job = call?.jobId ? store.getJob(call.jobId) : undefined;
+
+  // ------------------------------------------------------------------
+  // Bypass check — if the caller signals emergency/urgency, skip all
+  // diagnosis and dispatch immediately.
+  // ------------------------------------------------------------------
+  if (isBypassIntent(transcript) && call) {
+    store.upsertJob({ id: job?.id ?? call.jobId ?? "", status: "sourcing_contractor" });
+    after(async () => {
+      try { await runAgent({ callId: call.id }); } catch (e) { console.error("[runAgent bypass]", e); }
+    });
+    return ndjsonResponse("Understood — dispatching contractors right now. I'll send you an update as soon as someone's confirmed.");
+  }
+
+  // ------------------------------------------------------------------
+  // Recall — fire on first turn, cache for the rest of the call.
+  // Moss knowledge gives diagnostic guidance; Supermemory surfaces
+  // past jobs and owner preferences at this property.
+  // ------------------------------------------------------------------
+  if (!voiceRecallCache.has(callId) && transcript.trim().length > 5) {
+    const person = fromNumber ? findPersonByPhone(fromNumber) : undefined;
+    const property = person ? findPropertyForPerson(person) : undefined;
+    const address = property?.address ?? fromNumber;
+
+    const [knowledgeRes, memoryRes] = await Promise.all([
+      moss.searchKnowledge({ query: transcript, topK: 3 }).catch(() => ({ hits: [] as { id: string; text: string; score: number }[] })),
+      supermemory.recall({ query: `${address} ${transcript}`, topK: 5 }).catch(() => ({ memories: [] as { id: string; text: string; score: number; metadata: Record<string, unknown> }[] })),
+    ]);
+
+    const ownerPrefs: string[] = [];
+    const pastJobs: string[] = [];
+    for (const m of memoryRes.memories) {
+      if (/owner|prefer|portfolio|authoriz/i.test(m.text)) ownerPrefs.push(m.text);
+      else pastJobs.push(m.text);
+    }
+
+    voiceRecallCache.set(callId, {
+      knowledgeHits: knowledgeRes.hits.map((h) => h.text),
+      pastJobs,
+      ownerPrefs,
+    });
+  }
+
+  const recall = voiceRecallCache.get(callId);
+
+  // ------------------------------------------------------------------
+  // Build system context
+  // ------------------------------------------------------------------
+  const person = fromNumber ? findPersonByPhone(fromNumber) : undefined;
+  const property = person ? findPropertyForPerson(person) : undefined;
+  const unit = person ? findUnitForPerson(person) : undefined;
+
+  const lines: string[] = [
+    "You are a property management AI agent in active diagnostic mode.",
+    "Your job: ask specific, targeted questions to understand the maintenance issue clearly, then dispatch a contractor.",
+    "Be concise (under 40 words per turn), calm, and professional.",
+    "",
+    "RULES:",
+    "- Ask one focused question at a time to diagnose the issue (location, when it started, severity, related symptoms).",
+    "- If the caller mentions emergency, urgency, or just wants someone sent — stop diagnosing and say you're dispatching now.",
+    "- Once you have a clear picture, confirm what you've found and say you're arranging dispatch.",
+    "- Never invent contractor names or ETAs. Say \"I'm arranging dispatch now.\"",
+    "- Ask the tenant to send a photo if it will help assess damage.",
+  ];
+
+  if (person) {
+    lines.push("");
+    lines.push(`TENANT: ${person.name}${property ? ` at ${property.address}` : ""}${unit?.label ? `, Unit ${unit.label}` : ""}.`);
+    lines.push("You already know who this is — greet them by name on the first turn.");
+  }
+
+  if (property) {
+    const caps: string[] = [];
+    const spendCap = unit?.spendCapCents ?? property.spendCapCents;
+    if (spendCap) caps.push(`Spend cap: $${Math.round(spendCap / 100)}`);
+    if (property.ownerInstructions) caps.push(`Owner rule: ${property.ownerInstructions}`);
+    if (property.waterShutoffLocation) caps.push(`Water shutoff: ${property.waterShutoffLocation}`);
+    if (property.hvacType) caps.push(`HVAC: ${property.hvacType}`);
+    if (caps.length) { lines.push(""); lines.push(caps.join(" · ")); }
+  }
+
+  if (recall?.knowledgeHits.length) {
+    lines.push("");
+    lines.push("DIAGNOSTIC GUIDANCE (use these to ask better questions, don't read them aloud):");
+    recall.knowledgeHits.forEach((h) => lines.push(`- ${h}`));
+  }
+
+  if (recall?.pastJobs.length) {
+    lines.push("");
+    lines.push("PROPERTY HISTORY:");
+    recall.pastJobs.slice(0, 2).forEach((j) => lines.push(`- ${j}`));
+  }
+
+  if (recall?.ownerPrefs.length) {
+    lines.push("");
+    lines.push("OWNER PREFERENCES:");
+    recall.ownerPrefs.slice(0, 1).forEach((p) => lines.push(`- ${p}`));
+  }
+
+  if (job?.visualContext) {
+    lines.push("");
+    lines.push(`VISUAL TRIAGE (photo already received): ${job.visualContext.description} — severity: ${job.visualContext.severity}.`);
+    lines.push("Acknowledge what you can see and confirm you're dispatching.");
+  }
+
+  const systemContext = lines.join("\n");
+
+  const history = recentHistory.map((h) => ({
+    role: (h.role === "assistant" ? "model" : "user") as "user" | "model",
+    text: h.content,
+  }));
+
+  const { text } = await gemini.generateVoiceResponse({ systemContext, history, userMessage: transcript });
+
+  // Trigger dispatch once visual context is present and job still triaging.
+  if (job?.visualContext && call && job.status === "triaging" && recentHistory.length >= 1) {
+    store.upsertJob({ id: job.id, status: "sourcing_contractor" });
+    after(async () => {
+      try { await runAgent({ callId: call.id }); } catch (e) { console.error("[runAgent visual]", e); }
+    });
+  }
+
+  return ndjsonResponse(text);
+}
+
+function ndjsonResponse(text: string): Response {
+  return new Response(JSON.stringify({ text }) + "\n", {
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      "Transfer-Encoding": "chunked",
+    },
+  });
 }
