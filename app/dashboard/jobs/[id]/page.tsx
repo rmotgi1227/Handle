@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import {
-  ArrowLeft, Phone, CheckCircle2, Receipt, MailQuestion, StickyNote, ChevronDown, Banknote, CreditCard,
+  ArrowLeft, Phone, CheckCircle2, Receipt, MailQuestion, StickyNote, ChevronDown, Banknote, CreditCard, Clock, Sparkles,
 } from "lucide-react";
 import { store } from "@/lib/store/memory";
 import { createInvoiceForJob, markJobComplete, sendSurveyRequest, addNoteToJob, payContractor } from "@/lib/orchestrator/actions";
@@ -26,6 +26,20 @@ export default async function JobDetailPage({
   const reporter = store.people.get(job.reportedByPersonId);
   const contractor = job.assignedContractorId
     ? store.contractors.get(job.assignedContractorId)
+    : undefined;
+
+  // Most recent accepted dial for the assigned contractor — that's the
+  // "deal" the agent struck on the wire (price + ETA the contractor said
+  // yes to). The /api/calls/outbound webhook writes this from the real call.
+  const dealCall = job.assignedContractorId
+    ? Array.from(store.contractorCalls.values())
+        .filter(
+          (c) =>
+            c.jobId === id &&
+            c.contractorId === job.assignedContractorId &&
+            c.outcome === "accepted_job",
+        )
+        .sort((a, b) => (b.endedAt ?? "").localeCompare(a.endedAt ?? ""))[0]
     : undefined;
 
   const calls = job.callIds
@@ -166,11 +180,52 @@ export default async function JobDetailPage({
 
         <aside className="flex flex-col gap-4">
           {contractor ? (
-            <div>
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">
+            <div className="flex flex-col gap-3">
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">
                 Assigned contractor
               </h2>
               <ContractorCard contractor={{ ...contractor, metrics: { jobsCompleted: 0, lifetimeSpendCents: 0 } }} />
+              {dealCall ? (
+                <div
+                  className="rounded-2xl border border-[#3B5A78]/25 bg-gradient-to-br from-white to-[#EEF4F9] p-4"
+                  style={{ boxShadow: "0 2px 8px rgba(21,22,26,0.05)" }}
+                >
+                  <div className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#3B5A78]">
+                    <Sparkles className="size-3" /> Negotiated deal
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">
+                        Agreed price
+                      </div>
+                      <div className="mt-0.5 font-mono text-lg font-black tabular-nums text-[#15161A]">
+                        {dealCall.quotedPriceCents
+                          ? `$${(dealCall.quotedPriceCents / 100).toFixed(0)}`
+                          : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA0A0]">
+                        ETA window
+                      </div>
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-sm font-bold text-[#15161A]">
+                        <Clock className="size-3.5 text-[#3B5A78]" />
+                        {dealCall.etaWindow ?? "TBD"}
+                      </div>
+                    </div>
+                  </div>
+                  {dealCall.transcriptSummary ? (
+                    <p className="mt-3 border-t border-[#E8E3DA] pt-3 text-xs font-medium leading-snug text-[#6B7070]">
+                      {dealCall.transcriptSummary}
+                    </p>
+                  ) : null}
+                  {dealCall.endedAt ? (
+                    <p className="mt-2 text-[10px] font-medium text-[#9AA0A0]">
+                      Locked on the call · {new Date(dealCall.endedAt).toLocaleString()}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-[#E8E3DA] p-5 text-xs font-medium text-[#9AA0A0]">

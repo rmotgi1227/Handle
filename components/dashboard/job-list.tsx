@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import {
-  Droplet, Zap, Wind, Wrench, Key, Bug, Sparkles, Hammer, Home, Trees, Loader2,
+  Droplet, Zap, Wind, Wrench, Key, Bug, Sparkles, Hammer, Home, Trees, Loader2, Clock,
 } from "lucide-react";
 import { usePollingFetch } from "@/hooks/use-polling-fetch";
 import { UrgencyPill } from "./urgency-pill";
 import { StatusPill } from "./status-pill";
 import type { Job, JobUrgency, Trade, Contractor, Property } from "@/lib/types";
 
-type JobsResponse = { jobs: Job[] };
+type JobWithDeal = Job & {
+  negotiatedDeal?: { quotedPriceCents?: number; etaWindow?: string };
+};
+type JobsResponse = { jobs: JobWithDeal[] };
 
 const tradeIcon: Record<Trade, typeof Droplet> = {
   plumbing: Droplet,
@@ -57,7 +60,10 @@ export function JobList({
 }) {
   const jobsRes = usePollingFetch<JobsResponse>("/api/jobs", 5000);
 
-  const allJobs = jobsRes.data?.jobs ?? initialJobs;
+  // The API enriches jobs with negotiatedDeal; initial server-rendered jobs
+  // don't carry it yet (it's a render-time concern). Widen to JobWithDeal so
+  // the row template can read `negotiatedDeal?.etaWindow` either way.
+  const allJobs: JobWithDeal[] = (jobsRes.data?.jobs ?? initialJobs) as JobWithDeal[];
   const jobs = filterStatuses
     ? allJobs.filter((j) => filterStatuses.includes(j.status))
     : allJobs;
@@ -133,7 +139,7 @@ export function JobList({
                   <StatusPill status={job.status} />
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-3 text-xs font-medium text-[#9AA0A0]">
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-[#9AA0A0]">
                 {sourcing ? (
                   <span className="inline-flex items-center gap-1.5 text-[#3B5A78]">
                     <Loader2 className="size-3 animate-spin" />
@@ -144,6 +150,20 @@ export function JobList({
                 ) : (
                   <span>Unassigned</span>
                 )}
+                {job.negotiatedDeal?.etaWindow ? (
+                  <>
+                    <span className="text-[#E8E3DA]">·</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF4F9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#3B5A78]">
+                      <Clock className="size-3" />
+                      {job.negotiatedDeal.etaWindow}
+                    </span>
+                  </>
+                ) : null}
+                {job.negotiatedDeal?.quotedPriceCents ? (
+                  <span className="font-mono font-bold tabular-nums text-[#15161A]">
+                    ${(job.negotiatedDeal.quotedPriceCents / 100).toFixed(0)}
+                  </span>
+                ) : null}
                 <span className="text-[#E8E3DA]">·</span>
                 <span className="tabular-nums" suppressHydrationWarning>{relativeTime(job.createdAt)}</span>
               </div>

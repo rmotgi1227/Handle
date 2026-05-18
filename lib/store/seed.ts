@@ -836,6 +836,23 @@ export function seedOnce(): void {
     assignedContractorId: "ctr_1",
   });
 
+  // The "deal" the outbound dispatch call locked in — populated by the
+  // /api/calls/outbound webhook in production. Seeded here so the demo
+  // shows the negotiated price + ETA on the job detail page without
+  // requiring a live call.
+  store.contractorCalls.set("ctr_call_seed_active", {
+    id: "ctr_call_seed_active",
+    jobId: "job_seed_active",
+    contractorId: "ctr_1",
+    startedAt: iso(7),
+    endedAt: iso(5),
+    outcome: "accepted_job",
+    quotedPriceCents: 22000,
+    etaWindow: "today 3–5pm",
+    transcriptSummary:
+      "Bay Area Plumbing matched the $220 anchor and committed to a 3–5pm arrival window. Standard drain-trap rebuild.",
+  });
+
   store.upsertCall({
     id: "call_seed_1",
     fromNumber: "+14155551410",

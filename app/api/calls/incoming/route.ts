@@ -350,6 +350,12 @@ async function handleMockPost(
   // adapter (the live adapter's parseInboundWebhook expects an event-shaped
   // body, not the curl shape). Generate a callId locally.
   const fromNumber = body.data.fromNumber ?? "+14155550100";
+  if (!isCallerAllowed(fromNumber)) {
+    return Response.json(
+      { ok: false, error: "caller_not_allowed", from: fromNumber },
+      { status: 403 },
+    );
+  }
   const callId = `call_${nanoid(8)}`;
   const startedAt = new Date().toISOString();
 

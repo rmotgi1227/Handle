@@ -130,6 +130,34 @@ export const gemini: GeminiClient = {
     return { summary: `Timeline so far — ${titles}.` };
   },
 
+  async parseContractorOutcome({ urgency, targetCents, transcript }) {
+    // Deterministic mock: look for keywords in the transcript to decide.
+    // Real implementation does this with Gemini reading the call back.
+    const text = transcript.map((t) => t.text.toLowerCase()).join(" ");
+    if (text === "" || text.includes("voicemail") || text.includes("[no answer]")) {
+      return { outcome: "no_answer" as const };
+    }
+    if (text.includes("can't") || text.includes("won't") || text.includes("walk")) {
+      return { outcome: "declined" as const, notes: "above walk-away" };
+    }
+    if (text.includes("call you back") || text.includes("call back")) {
+      return { outcome: "callback_scheduled" as const, notes: "contractor will call back" };
+    }
+    const eta =
+      urgency === "emergency"
+        ? "today within the hour"
+        : urgency === "urgent"
+          ? "today 3–5pm"
+          : "tomorrow morning";
+    const price = targetCents ?? 18000;
+    return {
+      outcome: "accepted_job" as const,
+      priceCents: price,
+      etaWindow: eta,
+      notes: "matched target",
+    };
+  },
+
   async analyzeMedia(_input) {
     return {
       description:

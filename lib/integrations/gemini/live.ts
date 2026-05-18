@@ -44,6 +44,12 @@ const ClassifyIntentSchema = z.object({
 
 const ScriptSchema = z.object({ script: z.string().min(1) });
 const SummarySchema = z.object({ summary: z.string().min(1) });
+const ContractorOutcomeSchema = z.object({
+  outcome: z.enum(["accepted_job", "declined", "callback_scheduled", "no_answer"]),
+  priceCents: z.number().int().positive().optional(),
+  etaWindow: z.string().min(1).optional(),
+  notes: z.string().min(1).optional(),
+});
 const AnalyzeMediaSchema = z.object({
   description: z.string().min(1),
   severity: z.enum(["emergency", "urgent", "standard"]),
@@ -199,6 +205,42 @@ export const gemini: GeminiClient = {
       'Respond as the property management AI agent. Be concise (under 40 words), helpful, and direct. If you have visual context about the issue, use it. Respond with ONLY JSON: { "text": string }',
     ].join("\n");
     return callJson(prompt, z.object({ text: z.string().min(1) }), "generateVoiceResponse");
+  },
+
+  async parseContractorOutcome({
+    jobTitle,
+    urgency,
+    contractorName,
+    targetCents,
+    walkAwayCents,
+    transcript,
+  }) {
+    const lines = transcript
+      .map((t) => `${t.role === "agent" ? "Dispatcher" : contractorName}: ${t.text}`)
+      .join("\n");
+    const prompt = [
+      "You parsed a finished outbound call where a property-management dispatcher",
+      `tried to book ${contractorName} for: ${jobTitle} (urgency: ${urgency}).`,
+      targetCents
+        ? `Dispatcher target was $${Math.round(targetCents / 100)}; walk-away was $${Math.round((walkAwayCents ?? 0) / 100)}.`
+        : "No price target was given to the dispatcher.",
+      "",
+      "Read the transcript and decide:",
+      `  outcome: one of`,
+      `    - "accepted_job"        — contractor agreed to take the job (price + ETA confirmed),`,
+      `    - "declined"            — contractor said no (busy, won't price, walked away),`,
+      `    - "callback_scheduled"  — they couldn't commit now but will call back,`,
+      `    - "no_answer"           — voicemail, line dead, or no real conversation.`,
+      `  priceCents:  integer cents of the AGREED price if accepted (else omit).`,
+      `  etaWindow:   short ETA string ("today 3–5pm", "tomorrow morning") if accepted (else omit).`,
+      `  notes:       one short clause for the dashboard ("matched anchor", "above walk-away", "no voicemail box").`,
+      "",
+      "Respond with ONLY a JSON object matching that shape. Don't infer numbers that weren't said aloud.",
+      "",
+      "Transcript:",
+      lines || "(no transcript captured)",
+    ].join("\n");
+    return callJson(prompt, ContractorOutcomeSchema, "parseContractorOutcome");
   },
 
   async analyzeMedia({ mediaUrl, mimeType }) {

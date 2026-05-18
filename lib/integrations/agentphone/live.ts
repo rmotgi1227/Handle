@@ -110,6 +110,12 @@ export const agentphone: AgentPhoneClient = {
     if (input.negotiationContext) {
       payload.conversationState = input.negotiationContext;
     }
+    // Forward orchestrator metadata (jobId, contractorId) so AgentPhone echoes
+    // it back on call_ended — the webhook needs it to find the originating
+    // job and overwrite the placeholder dial outcome with the real one.
+    if (input.metadata) {
+      payload.metadata = input.metadata;
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = (await sdk().calls.createOutboundCall(payload as any)) as {
       id?: string;
@@ -145,6 +151,7 @@ export const agentphone: AgentPhoneClient = {
       );
     }
     // Uses the AgentPhone messages.sendMessage SDK method (POST /v1/messages)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await sdk().messages.sendMessage({
       agent_id: agentId,

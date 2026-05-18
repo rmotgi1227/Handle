@@ -41,9 +41,10 @@ export function PmSidebar() {
   const liveCount = (callsRes.data?.calls ?? []).filter(
     (c) => c.status === "in_progress" || c.status === "ringing",
   ).length;
+  const todayStr = new Date().toDateString();
   const callsToday = (callsRes.data?.calls ?? []).filter((c) => {
-    const t = new Date(c.startedAt ?? Date.now()).toDateString();
-    return t === new Date().toDateString();
+    if (!c.startedAt) return false;
+    return new Date(c.startedAt).toDateString() === todayStr;
   }).length;
 
   const width = collapsed ? "w-[72px]" : "w-[240px]";

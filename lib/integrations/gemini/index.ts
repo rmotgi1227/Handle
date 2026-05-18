@@ -40,6 +40,25 @@ export interface GeminiClient {
     history: { role: "user" | "model"; text: string }[];
     userMessage: string;
   }): Promise<{ text: string }>;
+  /**
+   * Parse a finished contractor dial transcript and surface the actual outcome.
+   * Replaces the placeholder `simulateDialOutcome` once the AgentPhone
+   * `agent.call_ended` webhook lands. Returns priceCents and etaWindow when
+   * the contractor accepted; both undefined otherwise.
+   */
+  parseContractorOutcome(input: {
+    jobTitle: string;
+    urgency: JobUrgency;
+    contractorName: string;
+    targetCents?: number;
+    walkAwayCents?: number;
+    transcript: { role: "agent" | "user"; text: string }[];
+  }): Promise<{
+    outcome: "accepted_job" | "declined" | "callback_scheduled" | "no_answer";
+    priceCents?: number;
+    etaWindow?: string;
+    notes?: string;
+  }>;
 }
 
 export const gemini: GeminiClient = pickImpl<GeminiClient>("gemini", {
