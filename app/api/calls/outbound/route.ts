@@ -60,12 +60,18 @@ const OutboundCallEndedSchema = z
 export async function POST(request: Request): Promise<Response> {
   const rawBody = await request.text();
 
-  if (env.AGENTPHONE_WEBHOOK_SECRET) {
+  // AgentPhone mints a per-webhook secret; the contractor agent's webhook
+  // has its own secret distinct from the inbound triage one. Prefer the
+  // contractor-specific env, fall back to the legacy single secret so
+  // older deploys without the new env still verify.
+  const secret =
+    env.AGENTPHONE_CONTRACTOR_WEBHOOK_SECRET ?? env.AGENTPHONE_WEBHOOK_SECRET;
+  if (secret) {
     const result = verifyAgentPhoneWebhook({
       rawBody,
       signature: request.headers.get("x-webhook-signature"),
       timestamp: request.headers.get("x-webhook-timestamp"),
-      secret: env.AGENTPHONE_WEBHOOK_SECRET,
+      secret,
     });
     if (!result.ok) {
       return Response.json(

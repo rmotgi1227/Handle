@@ -5,7 +5,12 @@ import type { NegotiationContext } from "@/lib/integrations/agentphone";
 import { gemini } from "@/lib/integrations/gemini";
 import { supermemory } from "@/lib/integrations/supermemory";
 import { browseruse } from "@/lib/integrations/browseruse";
-import { moss } from "@/lib/integrations/moss";
+// NOTE: `moss` is NOT statically imported. `@inferedge/moss` pulls
+// `@huggingface/transformers` → `onnxruntime-node` (libonnxruntime.so) into
+// the bundle. Statically importing it here bloats every route that imports
+// run.ts and crashes the serverless lambda at init (Vercel serves /500.html
+// before our handler ever runs). Dynamic import inside buildRecallContext
+// keeps moss lazy so only the call paths that need it load it.
 import type {
   Contractor,
   ContractorCallOutcome,
@@ -35,24 +40,40 @@ async function buildRecallContext(input: BuildRecallContextInput): Promise<Recal
   const knowledgeQuery = `${input.trade} ${input.problem}`;
   const failedSources: string[] = [];
 
+  // Dynamic import so onnxruntime stays out of the per-route bundle (see
+  // comment at top of file). If the import itself fails on this runtime
+  // (e.g. native binding missing), we degrade to empty hits gracefully.
+  let moss: typeof import("@/lib/integrations/moss").moss | null = null;
+  try {
+    const mod = await import("@/lib/integrations/moss");
+    moss = mod.moss;
+  } catch (e) {
+    console.warn("[orchestrator] moss import failed (skipping recall):", e);
+    failedSources.push("moss.import");
+  }
+
   const [knowledgeRes, contractorRes, memoryRes] = await Promise.all([
-    moss.searchKnowledge({ query: knowledgeQuery, topK: 3 }).catch((e) => {
-      console.warn("[orchestrator] moss.searchKnowledge failed:", e);
-      failedSources.push("moss.knowledge");
-      return { hits: [] as { id: string; text: string; score: number }[] };
-    }),
     moss
-      .searchContractors({
-        trade: input.trade,
-        city: input.city,
-        problem: input.problem,
-        topK: 5,
-      })
-      .catch((e) => {
-        console.warn("[orchestrator] moss.searchContractors failed:", e);
-        failedSources.push("moss.contractors");
-        return { hits: [] as { contractorId: string; score: number }[] };
-      }),
+      ? moss.searchKnowledge({ query: knowledgeQuery, topK: 3 }).catch((e) => {
+          console.warn("[orchestrator] moss.searchKnowledge failed:", e);
+          failedSources.push("moss.knowledge");
+          return { hits: [] as { id: string; text: string; score: number }[] };
+        })
+      : Promise.resolve({ hits: [] as { id: string; text: string; score: number }[] }),
+    moss
+      ? moss
+          .searchContractors({
+            trade: input.trade,
+            city: input.city,
+            problem: input.problem,
+            topK: 5,
+          })
+          .catch((e) => {
+            console.warn("[orchestrator] moss.searchContractors failed:", e);
+            failedSources.push("moss.contractors");
+            return { hits: [] as { contractorId: string; score: number }[] };
+          })
+      : Promise.resolve({ hits: [] as { contractorId: string; score: number }[] }),
     supermemory.recall({ query: recallQuery, topK: 6 }).catch((e) => {
       console.warn("[orchestrator] supermemory.recall failed:", e);
       failedSources.push("supermemory");

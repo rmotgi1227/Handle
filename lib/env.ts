@@ -13,6 +13,10 @@ const EnvSchema = z.object({
   AGENTPHONE_API_KEY: z.string().optional(),
   AGENTPHONE_NUMBER: z.string().optional(),
   AGENTPHONE_WEBHOOK_SECRET: z.string().optional(),
+  /** Separate secret for the outbound contractor agent's webhook. AgentPhone
+   * mints one secret per (agent, webhook) registration, so the inbound triage
+   * webhook and the outbound contractor webhook have distinct secrets. */
+  AGENTPHONE_CONTRACTOR_WEBHOOK_SECRET: z.string().optional(),
   AGENTPHONE_AGENT_ID: z.string().optional(),
   AGENTPHONE_CONTRACTOR_AGENT_ID: z.string().optional(),
 
