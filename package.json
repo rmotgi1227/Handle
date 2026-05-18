@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check": "pnpm exec tsc --noEmit && pnpm exec eslint . --max-warnings 0 && pnpm test"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

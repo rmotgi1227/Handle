@@ -31,13 +31,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (non-blocking)
-        run: pnpm lint --max-warnings 9999
-        continue-on-error: true
+      - name: Lint
+        run: pnpm exec eslint . --max-warnings 0
 
-      - name: Type check (non-blocking — Vercel re-runs this)
+      - name: Type check
         run: pnpm exec tsc --noEmit
-        continue-on-error: true
 
       - name: Test
         run: pnpm test
