@@ -167,8 +167,8 @@ export function seedOnce(): void {
   store.upsertPerson({
     id: "person_tenant_1",
     role: "tenant",
-    name: "Nick Santos",
-    phone: "+19853381645",
+    name: "Marcus Chen",
+    phone: "+14155551410",
     propertyId: "prop_1",
     unitId: "unit_p1_3b",
   });
@@ -266,7 +266,7 @@ export function seedOnce(): void {
     waterShutoffLocation: "Per-unit shutoffs in mechanical closet inside each unit (off the kitchen).",
     electricalPanelLocation: "Per-unit panel in laundry. Building main in basement (concierge has key).",
     hvacType: "Central forced-air w/ Nest in each unit. Building chiller — HVAC vendor must coordinate w/ HOA on rooftop work.",
-    ownerInstructions: "HOA requires COI on file BEFORE any contractor arrives. Owner prefers Mission Electric for electrical.",
+    ownerInstructions: "HOA requires COI on file BEFORE any contractor arrives. Owner prefers Nick Santos Electric for electrical.",
     spendCapCents: 100000,
     emergencyContactName: "Priya Kapoor (owner)",
     emergencyContactPhone: "+14155551301",
@@ -461,7 +461,7 @@ export function seedOnce(): void {
     hvacType:
       "VRF heat pumps per unit (Daikin VRV, installed 2019). Rooftop condenser bank — HVAC vendor must coordinate w/ HOA before rooftop access.",
     ownerInstructions:
-      "HOA enforces a strict 9a–5p workday rule M–F (no weekend work). All contractors must wear ID badges from concierge. Owner prefers Mission Electric for any electrical work over $500.",
+      "HOA enforces a strict 9a–5p workday rule M–F (no weekend work). All contractors must wear ID badges from concierge. Owner prefers Nick Santos Electric for any electrical work over $500.",
     spendCapCents: 150000,
     emergencyContactName: "Marcus Beaumont (owner)",
     emergencyContactPhone: "+14155551302",
@@ -638,7 +638,7 @@ export function seedOnce(): void {
   // -------------------------------------------------------------------------
 
   // prop_3 — Hayes Valley (6 named tenants in 12-unit building)
-  store.upsertPerson({ id: "person_tenant_8",  role: "tenant", name: "Maya Sundaram",  phone: "+14079214601", propertyId: "prop_3", unitId: "unit_p3_101" });
+  store.upsertPerson({ id: "person_tenant_8",  role: "tenant", name: "Rishab Motgi",  phone: "+14079214601", propertyId: "prop_3", unitId: "unit_p3_101" });
   store.upsertPerson({ id: "person_tenant_9",  role: "tenant", name: "Ezra Goldfarb",  phone: "+14155551501", propertyId: "prop_3", unitId: "unit_p3_102" });
   store.upsertPerson({ id: "person_tenant_10", role: "tenant", name: "Bea Lockwood",   phone: "+14155551502", propertyId: "prop_3", unitId: "unit_p3_201" });
   store.upsertPerson({ id: "person_tenant_11", role: "tenant", name: "Adesina Coker",  phone: "+14155551503", propertyId: "prop_3", unitId: "unit_p3_202" });
@@ -789,7 +789,7 @@ export function seedOnce(): void {
     { id: "ctr_6", name: "Roto-Rooter SF",         phone: "+14155552006", trades: ["plumbing"], rating: 4.3, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Big-name backup. Best for emergencies when Battikha Plumbing is booked." },
     { id: "ctr_7", name: "Sunset Drain Pros",      phone: "+14155552007", trades: ["plumbing"], rating: 4.7, city: "San Francisco", notes: "Drain specialists. Snake + hydro-jet. No new construction." },
     // Electrical
-    { id: "ctr_2",  name: "Mission Electric",      phone: "+14155552002", trades: ["electrical"], rating: 4.6, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Marcus's preferred for 789 Brannan. Licensed C-10." },
+    { id: "ctr_2",  name: "Nick Santos Electric",   phone: "+19853381645", trades: ["electrical"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Owner-operator (Nick Santos). Licensed C-10, fast on panel + EV-charger work. Direct line — picks up on the first ring." },
     { id: "ctr_8",  name: "Pacific Power Works",   phone: "+14155552008", trades: ["electrical"], rating: 4.5, city: "San Francisco", notes: "Strong on EV charger installs + service upgrades." },
     { id: "ctr_9",  name: "Bay Knob-and-Tube Specialists", phone: "+14155552009", trades: ["electrical"], rating: 4.8, city: "San Francisco", notes: "Niche — Victorian rewires. Two-week lead time but worth it." },
     // HVAC
