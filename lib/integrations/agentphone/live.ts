@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AgentPhoneClient as SdkClient } from "agentphone";
+import { AgentPhoneClient as SdkClient, type AgentPhone } from "agentphone";
 import { IntegrationError } from "@/lib/integrations/adapter";
 import { env, requireEnv } from "@/lib/env";
 import type { AgentPhoneClient } from "./index";
@@ -99,10 +99,18 @@ export const agentphone: AgentPhoneClient = {
         "Neither AGENTPHONE_CONTRACTOR_AGENT_ID nor AGENTPHONE_AGENT_ID is set — run scripts/provision-agentphone.ts first.",
       );
     }
-    // SDK return type shifts between versions; cast at the boundary only.
-    // conversationState is forwarded to the agent verbatim so the dispatch
-    // prompt can read negotiation context (target, walk-away, comps, history).
-    const payload: Record<string, unknown> = {
+    // The SDK's CreateOutboundCallRequest only types the documented fields,
+    // but the backing POST forwards extra fields verbatim. We extend the SDK
+    // type with the orchestrator's pass-through fields:
+    //   - conversationState: negotiation context (target, walk-away, comps,
+    //     history) the dispatch prompt reads on the contractor side.
+    //   - metadata: jobId/contractorId echoed back on call_ended so the
+    //     webhook can find the originating job.
+    type OutboundCallPayload = AgentPhone.CreateOutboundCallRequest & {
+      conversationState?: unknown;
+      metadata?: Record<string, unknown>;
+    };
+    const payload: OutboundCallPayload = {
       agentId,
       toNumber: input.toNumber,
       initialGreeting: input.script.slice(0, 240),
@@ -110,14 +118,12 @@ export const agentphone: AgentPhoneClient = {
     if (input.negotiationContext) {
       payload.conversationState = input.negotiationContext;
     }
-    // Forward orchestrator metadata (jobId, contractorId) so AgentPhone echoes
-    // it back on call_ended — the webhook needs it to find the originating
-    // job and overwrite the placeholder dial outcome with the real one.
     if (input.metadata) {
       payload.metadata = input.metadata;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = (await sdk().calls.createOutboundCall(payload as any)) as {
+    // SDK return type is `unknown` (HttpResponsePromise<unknown>); narrow at
+    // the boundary to the only fields we consume.
+    const result = (await sdk().calls.createOutboundCall(payload)) as {
       id?: string;
       callId?: string;
     };
@@ -150,14 +156,13 @@ export const agentphone: AgentPhoneClient = {
         "AGENTPHONE_AGENT_ID missing — set it to send SMS via AgentPhone.",
       );
     }
-    // Uses the AgentPhone messages.sendMessage SDK method (POST /v1/messages)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await sdk().messages.sendMessage({
+    // Uses the AgentPhone messages.sendMessage SDK method (POST /v1/messages).
+    // The SDK returns HttpResponsePromise<unknown>; narrow at the boundary.
+    const result = (await sdk().messages.sendMessage({
       agent_id: agentId,
       to_number: input.to,
       body: input.body,
-    } as any) as { id?: string; messageId?: string };
+    })) as { id?: string; messageId?: string };
     const messageId = result?.id ?? result?.messageId ?? "sent";
     return { messageId };
   },

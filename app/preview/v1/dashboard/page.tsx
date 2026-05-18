@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { LayoutGrid, Briefcase, Users, Settings, PhoneIncoming, Timer, Smile, PhoneCall, ChevronDown, ArrowLeft } from "lucide-react";
 import { HandleLogo } from "@/components/preview/handle-logo";
-import { HandleFavicon } from "@/components/preview/handle-favicon";
 import { getDashboardData, jobMeta, relativeTime } from "../../_data";
 import { UrgencyPill } from "@/components/dashboard/urgency-pill";
 import { StatusPill } from "@/components/dashboard/status-pill";

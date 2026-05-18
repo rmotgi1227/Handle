@@ -23,7 +23,6 @@ export const agentmail: AgentMailClient = {
     seq += 1;
     const messageId = messageIdFor(input);
     if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
-      // eslint-disable-next-line no-console
       console.log(
         `[agentmail:mock] #${seq} → ${input.to} :: ${input.subject} (${messageId})`,
       );

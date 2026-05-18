@@ -109,7 +109,6 @@ export const agentphone: AgentPhoneClient = {
   async sendSms(input) {
     const messageId = callIdFor("sms", `${input.to}|${input.body}`);
     if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
-      // eslint-disable-next-line no-console
       console.log(`[agentphone:mock] sms → ${input.to} :: ${input.body.slice(0, 80)}...`);
     }
     return { messageId };

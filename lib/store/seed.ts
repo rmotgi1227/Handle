@@ -134,7 +134,6 @@ export const DEMO_PAYOUT_HISTORY: DemoPayout[] = [
 // Guard lives on globalThis so HMR re-evaluating this module can't reset it
 // while `memory.ts` (where the store lives) holds onto the same global.
 declare global {
-  // eslint-disable-next-line no-var
   var __callMyAgentSeeded: boolean | undefined;
 }
 
