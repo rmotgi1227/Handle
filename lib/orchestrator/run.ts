@@ -490,27 +490,21 @@ export async function dialContractorForJob(
     data: { contractorId, contractorCallId, negotiation: input.negotiationContext },
   });
 
-  const outcome = simulateDialOutcome(contractorId);
-  const etaWindow = outcome === "accepted_job" ? simulateEtaWindow(contractorId) : undefined;
-
+  // Write a PENDING ContractorCall placeholder — no outcome, no endedAt.
+  // The /api/calls/outbound webhook fills these in with the real call_ended
+  // signal from AgentPhone. The dashboard timeline waits on the real outcome.
   store.contractorCalls.set(contractorCallId, {
     id: contractorCallId,
     jobId,
     contractorId,
     startedAt: new Date().toISOString(),
-    endedAt: new Date().toISOString(),
-    outcome,
-    etaWindow,
   });
 
-  store.appendEvent({
-    jobId,
-    kind: "contractor_dial_outcome",
-    title: `${contractor.name}: ${outcome.replace(/_/g, " ")}`,
-    detail: etaWindow ? `ETA ${etaWindow}` : undefined,
-    data: { contractorId, contractorCallId, outcome, etaWindow },
-  });
-
+  // For the orchestrator's internal Promise.any race (runAgent), we still
+  // return a synthesized outcome — but we do NOT persist it. The race is a
+  // best-effort pick of a likely winner; the webhook is the source of truth.
+  const outcome = simulateDialOutcome(contractorId);
+  const etaWindow = outcome === "accepted_job" ? simulateEtaWindow(contractorId) : undefined;
   return { outcome, contractorCallId, etaWindow };
 }
 
@@ -677,13 +671,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     city,
     mossHits: ctx.contractorHits,
   });
-  // DEMO: pin the dial pool to ctr_1 only — that's Alex's phone for the
-  // hackathon demo. The rest of the seeded contractor numbers don't reach
-  // anyone, so a parallel race would just be 2 dead rings + 1 live one.
-  // Revert this slice when running with real contractor numbers.
-  const contractorIds = pool.contractorIds.includes("ctr_1")
-    ? ["ctr_1"]
-    : pool.contractorIds.slice(0, 1);
+  const contractorIds = pool.contractorIds;
 
   // 6b. Guard: zero contractors. Without this, the job silently freezes in
   //     `sourcing_contractor` because the dial loop has nothing to dial.
