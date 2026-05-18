@@ -785,8 +785,8 @@ export function seedOnce(): void {
   // Wallets on file get instant USDC payouts via Sponge; others get a check.
   const contractors = [
     // Plumbing
-    { id: "ctr_1", name: "Nick Santos", phone: "+19853381645", trades: ["plumbing", "electrical", "general"], rating: 4.9, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Owner-operator (Nick Santos). Multi-trade — plumbing, electrical (C-10 licensed), general repair. Knows Priya's pre-1930s buildings cold. 24hr emergency line. COI on file. Direct line — picks up on the first ring." },
-    { id: "ctr_6", name: "Roto-Rooter SF",         phone: "+14155552006", trades: ["plumbing"], rating: 4.3, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Big-name backup. Best for emergencies when Nick Santos is booked." },
+    { id: "ctr_1", name: "Bay Area Wall Fixes", phone: "+19853381645", trades: ["general"], rating: 4.9, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Drywall, plaster, and interior paint. Same-day patch + texture-matching. Owner-operator picks up on the first ring. COI on file." },
+    { id: "ctr_6", name: "Roto-Rooter SF",         phone: "+14155552006", trades: ["plumbing"], rating: 4.3, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Big-name backup for plumbing emergencies." },
     { id: "ctr_7", name: "Sunset Drain Pros",      phone: "+14155552007", trades: ["plumbing"], rating: 4.7, city: "San Francisco", notes: "Drain specialists. Snake + hydro-jet. No new construction." },
     // Electrical
     { id: "ctr_8",  name: "Pacific Power Works",   phone: "+14155552008", trades: ["electrical"], rating: 4.5, city: "San Francisco", notes: "Strong on EV charger installs + service upgrades." },
@@ -828,9 +828,9 @@ export function seedOnce(): void {
     reportedByPersonId: "person_tenant_1",
     status: "in_progress",
     urgency: "urgent",
-    trade: "plumbing",
-    title: "Kitchen sink leaking under cabinet",
-    description: "Tenant reports water pooling under the sink. Visible drip from the drain trap.",
+    trade: "general",
+    title: "Wall repair + repaint in bedroom",
+    description: "Tenant reports a hole in the bedroom wall (approx 6 inches) and requests patch + repaint before the upcoming move-out inspection.",
     callIds: ["call_seed_1"],
     assignedContractorId: "ctr_1",
   });
@@ -849,7 +849,7 @@ export function seedOnce(): void {
     quotedPriceCents: 22000,
     etaWindow: "today 3–5pm",
     transcriptSummary:
-      "Nick Santos matched the $220 anchor and committed to a 3–5pm arrival window. Standard drain-trap rebuild.",
+      "Bay Area Wall Fixes matched the $200 anchor and committed to a 3–5pm arrival window. Drywall patch + texture-matched repaint.",
   });
 
   store.upsertCall({
@@ -864,22 +864,22 @@ export function seedOnce(): void {
     durationSec: 240,
     transcript: [
       { at: iso(12), speaker: "agent", text: "Hi, you've reached the property line for 342 Valencia. What's going on?" },
-      { at: iso(11), speaker: "caller", text: "There's water under my kitchen sink and it's getting worse." },
-      { at: iso(11), speaker: "agent", text: "Got it — sounds urgent. Can you show me where it's coming from? I'll dispatch a plumber now." },
+      { at: iso(11), speaker: "caller", text: "I've got a hole in the bedroom wall — needs to be patched and repainted before my move-out inspection." },
+      { at: iso(11), speaker: "agent", text: "Got it — drywall patch + repaint. I'll dispatch a general contractor now and confirm the ETA back to you." },
     ],
-    summary: "Kitchen sink leak, drain trap. Tenant in unit 3B at 342 Valencia.",
-    intent: "maintenance.plumbing.leak",
+    summary: "Bedroom wall hole — patch + repaint requested. Tenant in unit 3B at 342 Valencia.",
+    intent: "maintenance.general.drywall",
     jobId: "job_seed_active",
   });
 
-  store.appendEvent({ jobId: "job_seed_active", kind: "call_received", title: "Tenant call received", detail: "Marcus Chen — leak under kitchen sink", at: iso(12) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "intent_classified", title: "Classified as plumbing · urgent", at: iso(11) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "diagnosed", title: "Diagnosed: drain trap leak", detail: "Best guess based on tenant description; plumber will confirm.", at: iso(10) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_search_started", title: "Searching for plumbers within 5 miles", at: iso(9) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "call_received", title: "Tenant call received", detail: "Marcus Chen — bedroom wall hole, needs patch + repaint", at: iso(12) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "intent_classified", title: "Classified as general · urgent", at: iso(11) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "diagnosed", title: "Diagnosed: drywall patch + texture-matched repaint", detail: "Approx 6 inch hole. Standard patch, sand, prime, repaint.", at: iso(10) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_search_started", title: "Searching for drywall/painters within 5 miles", at: iso(9) });
   store.appendEvent({ jobId: "job_seed_active", kind: "contractor_search_completed", title: "Found 3 candidates", data: { contractorIds: ["ctr_1"] }, at: iso(8) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_dial_started", title: "Dialing Nick Santos", at: iso(7) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_assigned", title: "Assigned Nick Santos", detail: "Quote accepted: ETA 30 min", at: iso(5) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "work_started", title: "Plumber on-site", at: iso(2) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_dial_started", title: "Dialing Bay Area Wall Fixes", at: iso(7) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_assigned", title: "Assigned Bay Area Wall Fixes", detail: "Quote accepted: ETA 30 min", at: iso(5) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "work_started", title: "Contractor on-site", at: iso(2) });
 
   store.upsertJob({
     id: "job_seed_done",
