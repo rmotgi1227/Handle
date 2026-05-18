@@ -1,6 +1,9 @@
 import "@/lib/store/bootstrap";
+import { after } from "next/server";
 import { z } from "zod";
 import { findContractorsForJob } from "@/lib/orchestrator/run";
+
+export const maxDuration = 60;
 
 const TradeSchema = z.enum([
   "plumbing",
@@ -32,13 +35,13 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  try {
-    const result = await findContractorsForJob(body);
-    return Response.json(result);
-  } catch (err) {
-    return Response.json(
-      { error: "find contractors failed", detail: (err as Error).message },
-      { status: 500 },
-    );
-  }
+  after(async () => {
+    try {
+      await findContractorsForJob(body);
+    } catch (err) {
+      console.error(`[contractors/find] find failed for job=${body.jobId}:`, err);
+    }
+  });
+
+  return Response.json({ queued: true, jobId: body.jobId });
 }
