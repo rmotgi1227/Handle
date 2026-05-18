@@ -14,6 +14,7 @@ const IN_FLIGHT = new Set<Job["status"]>([
 const LABEL: Record<Job["status"], string> = {
   triaging: "Triaging",
   sourcing_contractor: "Sourcing",
+  needs_manual_routing: "Needs routing",
   scheduled: "Scheduled",
   in_progress: "In progress",
   awaiting_survey: "Awaiting survey",
@@ -34,6 +35,7 @@ export function StatusPill({
   const live = IN_FLIGHT.has(status);
   const done = status === "completed";
   const paid = status === "paid";
+  const needsRouting = status === "needs_manual_routing";
 
   return (
     <span
@@ -42,6 +44,7 @@ export function StatusPill({
         live && "bg-[#EEF4F9] text-[#3B5A78]",
         done && "bg-[#EEEBE4] text-[#6B7070]",
         paid && "bg-[#ECFDF5] text-[#065F46]",
+        needsRouting && "bg-[#FDECEA] text-[#92290B]",
         status === "cancelled" && "border border-[#E8E3DA] text-[#9AA0A0]",
         className,
       )}
@@ -53,6 +56,8 @@ export function StatusPill({
         </span>
       ) : paid ? (
         <span className="size-1.5 rounded-full bg-[#065F46]" />
+      ) : needsRouting ? (
+        <span className="size-1.5 rounded-full bg-[#92290B]" />
       ) : done ? (
         <span className="size-1.5 rounded-full bg-[#6B7070]" />
       ) : (
