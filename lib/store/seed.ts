@@ -638,7 +638,7 @@ export function seedOnce(): void {
   // -------------------------------------------------------------------------
 
   // prop_3 — Hayes Valley (6 named tenants in 12-unit building)
-  store.upsertPerson({ id: "person_tenant_8",  role: "tenant", name: "Rishab Motgi",  phone: "+14079214601", propertyId: "prop_3", unitId: "unit_p3_101" });
+  store.upsertPerson({ id: "person_tenant_8",  role: "tenant", name: "Alex Motgi",  phone: "+14079214601", propertyId: "prop_3", unitId: "unit_p3_101" });
   store.upsertPerson({ id: "person_tenant_9",  role: "tenant", name: "Ezra Goldfarb",  phone: "+14155551501", propertyId: "prop_3", unitId: "unit_p3_102" });
   store.upsertPerson({ id: "person_tenant_10", role: "tenant", name: "Bea Lockwood",   phone: "+14155551502", propertyId: "prop_3", unitId: "unit_p3_201" });
   store.upsertPerson({ id: "person_tenant_11", role: "tenant", name: "Adesina Coker",  phone: "+14155551503", propertyId: "prop_3", unitId: "unit_p3_202" });
