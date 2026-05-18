@@ -1,3 +1,4 @@
+import "@/lib/store/bootstrap";
 import { store } from "@/lib/store/memory";
 
 export async function GET(
