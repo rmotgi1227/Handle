@@ -155,14 +155,14 @@ export function seedOnce(): void {
     role: "homeowner",
     name: "Priya Kapoor",
     phone: "+14155551301",
-    email: "priya@example.com",
+    email: "alex.battikha@gmail.com",
   });
   store.upsertPerson({
     id: "person_owner_2",
     role: "homeowner",
     name: "Marcus Beaumont",
     phone: "+14155551302",
-    email: "marcus@beaumont-properties.com",
+    email: "alex.battikha@gmail.com",
   });
   store.upsertPerson({
     id: "person_tenant_1",
