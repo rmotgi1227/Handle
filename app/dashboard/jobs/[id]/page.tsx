@@ -58,10 +58,12 @@ export default async function JobDetailPage({
   async function sendInvoice() {
     "use server";
     try {
-      // $4.50 demo amount — looks like a real service-call fee while staying
-      // under the live Sponge wallet's 5 USDC balance (so the on-chain transfer
-      // actually succeeds and you can verify it on Solscan).
-      await createInvoiceForJob({ jobId: id, amountCents: 450 });
+      // $200.00 demo amount — realistic plumbing service-call fee. Exceeds
+      // the live Sponge wallet's 5 USDC balance, so the on-chain transfer
+      // step will throw with insufficient-balance; the Stripe invoice itself
+      // is still created and emailed. Top up the wallet to >$200 USDC to
+      // unlock the full auto-pay chain.
+      await createInvoiceForJob({ jobId: id, amountCents: 20000 });
       // 5s "agent decision" delay so the timeline keeps the invoice_sent and
       // paid events as visibly distinct steps. Narrate as the agent reviewing
       // the invoice before authorising payment.
