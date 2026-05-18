@@ -85,6 +85,28 @@ docs/superpowers/plans/               The v1 implementation plan
 tests/integrations/                   Adapter contract tests
 ```
 
+## Integration status (production)
+
+| Integration | Mode | What runs live |
+|---|---|---|
+| AgentPhone | live | inbound triage (+15673671109), outbound contractor dial, SMS surveys |
+| Gemini | live | intent classification, contractor script drafting, visual triage |
+| Supermemory | live | cross-session memory, owner prefs, past-job recall |
+| Moss | live | semantic search over contractor catalog + knowledge index (dynamically imported to keep `onnxruntime-node` out of every Vercel lambda) |
+| Browser Use | live | fallback contractor discovery when Moss returns < 3 hits |
+| Sponge | live | USDC contractor payouts on Solana, billing wallet has live USDC on prod |
+| Stripe | live | landlord invoicing + payment-succeeded webhooks |
+| AgentMail | mock | invoice / receipt emails are stubs; SMS goes through AgentPhone instead |
+
+Production is at <https://handle-yc.vercel.app>. The agent's system prompt is auto-synced with the tenant directory once per Vercel cold start (see `lib/store/bootstrap.ts`) and can be force-refreshed via `POST /api/agentphone/sync`.
+
+## Operational notes
+
+- **Store**: in-memory `Map` pinned on `globalThis` (`lib/store/memory.ts`). Seeded once per process via `lib/store/seed.ts`. The dashboard, API routes, and orchestrator all share the same instance. Swap for Supermemory / Postgres for multi-tenant production by replacing the `store` export — the surface is intentionally narrow.
+- **Auth**: none on the dashboard yet. The product is a private PM tool — the Vercel project should be gated by a static team password before any non-demo use.
+- **Failure surfacing**: the orchestrator never silently strands a job. If recall sources error → `recall_partial` event. If 0 contractors found or all dials decline → job → `needs_manual_routing` status + `routing_failed` event (red pill on the dashboard).
+- **CI**: `.github/workflows/ci.yml` runs typecheck + tests on every PR.
+
 ## Next steps for the team
 
 See [TEAM.md](./TEAM.md) for the extension guide — where to plug in real keys, how to add a new sponsor integration, and what to build next.
