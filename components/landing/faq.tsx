@@ -8,19 +8,23 @@ type Item = { q: string; a: string };
 const ITEMS: Item[] = [
   {
     q: "What if no contractor picks up?",
-    a: "Three contractors are dialed in parallel from the Moss catalog. If all three decline or miss the call, the agent falls back to Browser Use to source fresh vendors live, then escalates to the property manager only if the queue is still empty after the urgency window.",
+    a: "Three contractors are dialed in parallel from the Moss catalog. If the first round comes up empty, AgentMail automatically reaches out to the next-best candidates by email, and Browser Use sources fresh vendors live from local business listings — only escalating to the property manager if the queue is still empty after the urgency window.",
+  },
+  {
+    q: "What if the tenant can't describe the issue?",
+    a: "The agent asks for a short video. Gemini analyzes the footage to diagnose the problem (severity, likely trade, visible damage) and hands that context back into the dispatch flow — so the contractor brief is accurate even when the caller can't put it in words.",
+  },
+  {
+    q: "How does memory work?",
+    a: "Moss holds the vetted contractor catalog and the property knowledge index (sub-10ms semantic search). Supermemory holds long-term history per unit: past jobs, owner preferences, contractor performance, tenant satisfaction. Both are queried in parallel on every call so the agent has full context to negotiate the right rate.",
   },
   {
     q: "Does the agent ever loop the owner in?",
     a: "Yes — for any urgent or above-threshold spend, AgentMail sends a one-line owner notice before dispatch. For standard tickets the owner gets a clean digest at the end of the day instead of a stream of pings.",
   },
   {
-    q: "How does memory work?",
-    a: "Moss holds the vetted contractor catalog and the property knowledge index (sub-10ms). Supermemory holds long-term history per unit: past jobs, owner preferences, tenant satisfaction. Both are queried in parallel on every call so the agent answers with full context.",
-  },
-  {
     q: "Who pays the contractor?",
-    a: "Sponge generates the invoice on job completion, then releases payout from the property's operating account. The owner sees the receipt in AgentMail; the contractor sees the funds same-day in most regions.",
+    a: "Stripe generates the invoice on job completion (line item: the contractor's name, the work order, the amount). Sponge then settles that invoice from the landlord's operating wallet — USDC on Solana, on-chain, in seconds — and marks the Stripe invoice paid out-of-band. The owner sees the receipt in AgentMail; the contractor sees the funds same-day.",
   },
   {
     q: "Can a human override the dispatch?",
@@ -28,7 +32,7 @@ const ITEMS: Item[] = [
   },
   {
     q: "How long did this take to build?",
-    a: "We shipped the full loop — voice triage, dual-tier memory, parallel dial-out, payments, surveys — at the YC Call My Agent Hackathon in roughly thirty-six hours. The integrations are real; nothing in the demo is mocked.",
+    a: "We shipped the full loop — voice triage, visual triage, dual-tier memory, parallel dial-out, contractor payouts, surveys — at the YC Call My Agent Hackathon in less than 10 hours. The integrations are real; nothing in the demo is mocked.",
   },
 ];
 

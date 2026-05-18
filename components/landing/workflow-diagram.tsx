@@ -79,14 +79,14 @@ const STAGES: Stage[] = [
   },
   {
     key: "triage",
-    label: "Voice triage",
+    label: "Voice + visual triage",
     phase: "listen",
     col: 1,
     row: 2,
     tech: ["AgentPhone", "Gemini 2.5"],
     Icon: Mic,
     detail:
-      "The voice agent talks the tenant through the issue, classifies trade and urgency live, and confirms back in plain language before dispatch.",
+      "The voice agent talks the tenant through the issue, classifies trade and urgency live. If the caller can't describe the problem clearly, the agent requests a short video and Gemini analyses it to diagnose the damage before dispatch.",
   },
 
   // DECIDE
@@ -195,14 +195,14 @@ const STAGES: Stage[] = [
   },
   {
     key: "notify",
-    label: "Owner notice",
+    label: "Owner notice & email fallback",
     phase: "close",
     col: 7,
     row: 0.5,
     tech: ["AgentMail"],
     Icon: Mail,
     detail:
-      "One-line confirmation to the owner with the job, the vendor, and the ETA. Out-of-band approval only when policy demands it.",
+      "One-line confirmation to the owner with the job, the vendor, and the ETA. Doubles as the email-reach fallback: if no one picks up the parallel dial, AgentMail emails the next-best candidate the same brief.",
   },
   {
     key: "pay",
@@ -210,10 +210,10 @@ const STAGES: Stage[] = [
     phase: "close",
     col: 7,
     row: 2,
-    tech: ["Sponge"],
+    tech: ["Stripe", "Sponge"],
     Icon: Receipt,
     detail:
-      "Sponge generates the invoice on completion and releases payout from the property's operating account. The receipt mirrors to AgentMail.",
+      "Stripe generates the contractor's invoice on completion. Sponge settles it from the landlord's operating wallet — USDC on Solana, on-chain in seconds — and marks the Stripe invoice paid out-of-band. The receipt mirrors to AgentMail.",
   },
   {
     key: "survey",

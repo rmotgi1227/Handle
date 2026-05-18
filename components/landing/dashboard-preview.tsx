@@ -38,8 +38,8 @@ const HIGHLIGHTS: Highlight[] = [
   },
   {
     k: "Payments",
-    v: "Sponge invoice + payout, one click",
-    hint: "USDC settled",
+    v: "Stripe invoice + Sponge USDC payout, one click",
+    hint: "Settled on-chain",
     Icon: Wallet,
   },
 ];

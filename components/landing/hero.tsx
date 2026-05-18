@@ -24,7 +24,7 @@ export function Hero() {
         }}
       />
 
-      <div className="relative mx-auto grid max-w-6xl gap-12 px-8 pt-20 pb-24 md:grid-cols-[1.4fr_1fr] md:items-center md:pt-28 md:pb-32">
+      <div className="relative mx-auto grid max-w-6xl gap-12 px-8 pt-20 pb-24 md:grid-cols-[1.4fr_1fr] md:items-start md:pt-28 md:pb-24">
         <div>
           <div className="mb-10">
             <div className="inline-flex items-center gap-3 border border-[#E8572A] px-3 py-2">
@@ -50,9 +50,9 @@ export function Hero() {
           </div>
 
           <p className="mt-8 max-w-2xl text-balance text-lg font-medium leading-relaxed text-[#6B7070]">
-            Your tenants call one number. Handle triages, dials contractors in
-            parallel, books the job, and pays them out — all before you&apos;ve
-            checked Slack.
+            Your tenants call one number. Handle triages the issue, dials
+            contractors in parallel, books the job, and pays them out — all
+            before you&apos;ve checked Slack.
           </p>
 
           <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -187,23 +187,36 @@ function Line({
 }
 
 function StatsStrip() {
-  const stats: Array<{ value: string; label: string }> = [
-    { value: "<2s", label: "Triage latency" },
-    { value: "3×", label: "Parallel dial-out" },
-    { value: "<10ms", label: "Catalog recall" },
-    { value: "24/7", label: "Always-on dispatch" },
+  const stats: Array<{ value: string; label: string; source?: string }> = [
+    {
+      value: "$51.5B",
+      label: "Deferred repair backlog in US rental housing",
+      source: "Fed. Reserve Bank of Philadelphia",
+    },
+    {
+      value: "20+ hrs",
+      label: "Per month 39% of PMs spend on contractor phone tag",
+      source: "Buildium 2024",
+    },
+    { value: "<2s", label: "Triage latency · pick-up to dispatch" },
+    { value: "<10ms", label: "Contractor catalog recall (Moss)" },
   ];
   return (
     <div className="relative mx-auto max-w-6xl border-t border-[#E8E3DA] px-8">
       <dl className="grid grid-cols-2 divide-y divide-[#E8E3DA] sm:grid-cols-4 sm:divide-y-0 sm:divide-x">
         {stats.map((s) => (
           <div key={s.label} className="px-6 py-6 sm:py-7">
-            <dt className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#9AA0A0]">
-              {s.label}
-            </dt>
-            <dd className="mt-2 text-3xl font-black tracking-tight text-[#15161A] md:text-4xl">
+            <dd className="text-3xl font-black tracking-tight text-[#15161A] md:text-4xl">
               {s.value}
             </dd>
+            <dt className="mt-2 text-[11px] font-medium leading-snug text-[#6B7070]">
+              {s.label}
+            </dt>
+            {s.source ? (
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9AA0A0]">
+                {s.source}
+              </p>
+            ) : null}
           </div>
         ))}
       </dl>
