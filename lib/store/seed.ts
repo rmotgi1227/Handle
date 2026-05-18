@@ -167,7 +167,7 @@ export function seedOnce(): void {
   store.upsertPerson({
     id: "person_tenant_1",
     role: "tenant",
-    name: "Marcus Chen",
+    name: "Nick Santos",
     phone: "+19853381645",
     propertyId: "prop_1",
     unitId: "unit_p1_3b",
@@ -244,7 +244,7 @@ export function seedOnce(): void {
     electricalPanelLocation: "Basement, breaker room. Sub-panels in each unit's hall closet.",
     hvacType: "Radiator heat (landlord-controlled boiler). Window AC units owned by tenants.",
     ownerInstructions:
-      "Owner prefers Bay Area Plumbing Co. for any plumbing work — they know the building's old galvanized lines. Any spend over the cap needs Priya's text approval.",
+      "Owner prefers Battikha Plumbing for any plumbing work — they know the building's old galvanized lines. Any spend over the cap needs Priya's text approval.",
     spendCapCents: 50000,
     emergencyContactName: "Priya Kapoor (owner)",
     emergencyContactPhone: "+14155551301",
@@ -426,7 +426,7 @@ export function seedOnce(): void {
     hvacType:
       "Steam radiators (original 1908 boiler, Burnham, last serviced 2024). No central AC. Tenants supply window units.",
     ownerInstructions:
-      "Bay Area Plumbing knows this building cold — call them first for anything plumbing. NO drilling into south-wall plaster (asbestos sampling 2019 came back inconclusive, awaiting re-test).",
+      "Battikha Plumbing knows this building cold — call them first for anything plumbing. NO drilling into south-wall plaster (asbestos sampling 2019 came back inconclusive, awaiting re-test).",
     spendCapCents: 75000,
     emergencyContactName: "Priya Kapoor (owner)",
     emergencyContactPhone: "+14155551301",
@@ -556,7 +556,7 @@ export function seedOnce(): void {
     hvacType:
       "Wall heaters in each unit (PG&E-direct gas, 1980s vintage — flag any soot smell as urgent). No AC needed in this microclimate.",
     ownerInstructions:
-      "Tenants here are mostly UCSF residents — they're rarely home, give 24hr notice in writing (text). Bay Area Plumbing knows the building's cast-iron drain lines.",
+      "Tenants here are mostly UCSF residents — they're rarely home, give 24hr notice in writing (text). Battikha Plumbing knows the building's cast-iron drain lines.",
     spendCapCents: 45000,
     emergencyContactName: "Priya Kapoor (owner)",
     emergencyContactPhone: "+14155551301",
@@ -625,7 +625,7 @@ export function seedOnce(): void {
     hvacType:
       "Steam radiators — boiler is a 1990s Burnham (no AC, no need on Russian Hill).",
     ownerInstructions:
-      "Tenants here are long-term renters — be respectful, no surprises. Bay Area Plumbing has worked the building twice in the last two years. Any spend over the cap needs Priya's written approval.",
+      "Tenants here are long-term renters — be respectful, no surprises. Battikha Plumbing has worked the building twice in the last two years. Any spend over the cap needs Priya's written approval.",
     spendCapCents: 55000,
     emergencyContactName: "Priya Kapoor (owner)",
     emergencyContactPhone: "+14155551301",
@@ -785,8 +785,8 @@ export function seedOnce(): void {
   // Wallets on file get instant USDC payouts via Sponge; others get a check.
   const contractors = [
     // Plumbing
-    { id: "ctr_1", name: "Bay Area Plumbing Co.", phone: "+16198974800", trades: ["plumbing"], rating: 4.8, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Knows Priya's pre-1930s buildings cold. 24hr emergency line. COI on file." },
-    { id: "ctr_6", name: "Roto-Rooter SF",         phone: "+14155552006", trades: ["plumbing"], rating: 4.3, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Big-name backup. Best for emergencies when Bay Area Plumbing is booked." },
+    { id: "ctr_1", name: "Battikha Plumbing", phone: "+16198974800", trades: ["plumbing"], rating: 4.9, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Owner-operator (Alex Battikha). Knows Priya's pre-1930s buildings cold. 24hr emergency line. COI on file. Direct line — no dispatcher in the middle." },
+    { id: "ctr_6", name: "Roto-Rooter SF",         phone: "+14155552006", trades: ["plumbing"], rating: 4.3, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Big-name backup. Best for emergencies when Battikha Plumbing is booked." },
     { id: "ctr_7", name: "Sunset Drain Pros",      phone: "+14155552007", trades: ["plumbing"], rating: 4.7, city: "San Francisco", notes: "Drain specialists. Snake + hydro-jet. No new construction." },
     // Electrical
     { id: "ctr_2",  name: "Mission Electric",      phone: "+14155552002", trades: ["electrical"], rating: 4.6, city: "San Francisco", walletAddress: HANDLE_CONTRACTOR_ESCROW, notes: "Marcus's preferred for 789 Brannan. Licensed C-10." },
@@ -850,7 +850,7 @@ export function seedOnce(): void {
     quotedPriceCents: 22000,
     etaWindow: "today 3–5pm",
     transcriptSummary:
-      "Bay Area Plumbing matched the $220 anchor and committed to a 3–5pm arrival window. Standard drain-trap rebuild.",
+      "Battikha Plumbing matched the $220 anchor and committed to a 3–5pm arrival window. Standard drain-trap rebuild.",
   });
 
   store.upsertCall({
@@ -878,8 +878,8 @@ export function seedOnce(): void {
   store.appendEvent({ jobId: "job_seed_active", kind: "diagnosed", title: "Diagnosed: drain trap leak", detail: "Best guess based on tenant description; plumber will confirm.", at: iso(10) });
   store.appendEvent({ jobId: "job_seed_active", kind: "contractor_search_started", title: "Searching for plumbers within 5 miles", at: iso(9) });
   store.appendEvent({ jobId: "job_seed_active", kind: "contractor_search_completed", title: "Found 3 candidates", data: { contractorIds: ["ctr_1"] }, at: iso(8) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_dial_started", title: "Dialing Bay Area Plumbing Co.", at: iso(7) });
-  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_assigned", title: "Assigned Bay Area Plumbing Co.", detail: "Quote accepted: ETA 30 min", at: iso(5) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_dial_started", title: "Dialing Battikha Plumbing", at: iso(7) });
+  store.appendEvent({ jobId: "job_seed_active", kind: "contractor_assigned", title: "Assigned Battikha Plumbing", detail: "Quote accepted: ETA 30 min", at: iso(5) });
   store.appendEvent({ jobId: "job_seed_active", kind: "work_started", title: "Plumber on-site", at: iso(2) });
 
   store.upsertJob({
