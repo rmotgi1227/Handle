@@ -669,7 +669,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
         "Moss returned 0 candidates and Browser Use couldn't find any. Job has been flagged for manual routing — pick a contractor by hand from the Contractors tab.",
       data: { trade: intent.trade, city },
     });
-    return { jobId: job.id, assignedContractorId: null };
+    return { jobId: job.id, contractorId: null };
   }
 
   // Log skipped events only for contractors actually in the candidate pool.
@@ -735,7 +735,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
         "All dialed contractors declined, didn't pick up, or went to voicemail. Job has been flagged for manual routing — try a different contractor from the Contractors tab.",
       data: { triedContractorIds: top },
     });
-    return { jobId: job.id, assignedContractorId: null };
+    return { jobId: job.id, contractorId: null };
   }
 
   let assignedContractorId: string | null = null;
