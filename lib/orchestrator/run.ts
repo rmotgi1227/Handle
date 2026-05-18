@@ -19,6 +19,8 @@ export interface RecallContext {
   ownerPreferences: { id: string; text: string; score: number }[];
   contractorHits: { contractorId: string; score: number }[];
   knowledgeHits: { id: string; text: string; score: number }[];
+  /** Names of recall sources that errored out. Empty = full recall succeeded. */
+  failedSources: string[];
 }
 
 interface BuildRecallContextInput {
@@ -31,10 +33,12 @@ interface BuildRecallContextInput {
 async function buildRecallContext(input: BuildRecallContextInput): Promise<RecallContext> {
   const recallQuery = `${input.address ?? "unknown"} ${input.trade}`;
   const knowledgeQuery = `${input.trade} ${input.problem}`;
+  const failedSources: string[] = [];
 
   const [knowledgeRes, contractorRes, memoryRes] = await Promise.all([
     moss.searchKnowledge({ query: knowledgeQuery, topK: 3 }).catch((e) => {
       console.warn("[orchestrator] moss.searchKnowledge failed:", e);
+      failedSources.push("moss.knowledge");
       return { hits: [] as { id: string; text: string; score: number }[] };
     }),
     moss
@@ -46,10 +50,12 @@ async function buildRecallContext(input: BuildRecallContextInput): Promise<Recal
       })
       .catch((e) => {
         console.warn("[orchestrator] moss.searchContractors failed:", e);
+        failedSources.push("moss.contractors");
         return { hits: [] as { contractorId: string; score: number }[] };
       }),
     supermemory.recall({ query: recallQuery, topK: 6 }).catch((e) => {
       console.warn("[orchestrator] supermemory.recall failed:", e);
+      failedSources.push("supermemory");
       return { memories: [] as { id: string; text: string; score: number }[] };
     }),
   ]);
@@ -67,6 +73,7 @@ async function buildRecallContext(input: BuildRecallContextInput): Promise<Recal
     ownerPreferences: owner,
     contractorHits: contractorRes.hits,
     knowledgeHits: knowledgeRes.hits,
+    failedSources,
   };
 }
 
@@ -624,6 +631,19 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     },
   });
 
+  // 5c. Surface partial-recall failures so the PM sees something went wrong.
+  //     Without this the timeline just shows "0 jobs / 0 matches" with no
+  //     signal that Moss or Supermemory was down.
+  if (ctx.failedSources.length > 0) {
+    store.appendEvent({
+      jobId: job.id,
+      kind: "recall_partial",
+      title: `Recall partial — ${ctx.failedSources.length} source(s) failed`,
+      detail: `Down: ${ctx.failedSources.join(", ")}. Routing continues with trade defaults.`,
+      data: { failedSources: ctx.failedSources },
+    });
+  }
+
   // 6. Find contractors — Moss-first; falls back to Browser Use if <3 hits.
   store.appendEvent({
     jobId: job.id,
@@ -636,6 +656,21 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     city,
     mossHits: ctx.contractorHits,
   });
+
+  // 6b. Guard: zero contractors. Without this, the job silently freezes in
+  //     `sourcing_contractor` because the dial loop has nothing to dial.
+  if (contractorIds.length === 0) {
+    store.upsertJob({ id: job.id, status: "needs_manual_routing" });
+    store.appendEvent({
+      jobId: job.id,
+      kind: "routing_failed",
+      title: "No contractors found for this trade + city",
+      detail:
+        "Moss returned 0 candidates and Browser Use couldn't find any. Job has been flagged for manual routing — pick a contractor by hand from the Contractors tab.",
+      data: { trade: intent.trade, city },
+    });
+    return { jobId: job.id, assignedContractorId: null };
+  }
 
   // Log skipped events only for contractors actually in the candidate pool.
   for (const id of contractorIds) {
@@ -686,6 +721,21 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
     winner = await Promise.any(dialPromises);
   } catch {
     // All three failed to accept — leave winner null.
+  }
+
+  // 7b. Guard: no contractor accepted. Otherwise the job sits in
+  //     `sourcing_contractor` forever with no signal to the PM.
+  if (!winner) {
+    store.upsertJob({ id: job.id, status: "needs_manual_routing" });
+    store.appendEvent({
+      jobId: job.id,
+      kind: "routing_failed",
+      title: `None of the top ${top.length} contractor(s) accepted`,
+      detail:
+        "All dialed contractors declined, didn't pick up, or went to voicemail. Job has been flagged for manual routing — try a different contractor from the Contractors tab.",
+      data: { triedContractorIds: top },
+    });
+    return { jobId: job.id, assignedContractorId: null };
   }
 
   let assignedContractorId: string | null = null;

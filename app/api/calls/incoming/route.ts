@@ -27,6 +27,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { agentphone } from "@/lib/integrations/agentphone";
 import { verifyAgentPhoneWebhook } from "@/lib/integrations/agentphone/webhook-verify";
+import { isCallerAllowed } from "@/lib/integrations/agentphone/whitelist";
 import { runAgent } from "@/lib/orchestrator/run";
 import { store } from "@/lib/store/memory";
 import type { Call, CallTranscriptLine } from "@/lib/types";
@@ -213,6 +214,12 @@ async function handleLiveWebhook(
       );
     }
     const { callId, from, transcript } = body.data.data;
+    if (!isCallerAllowed(from)) {
+      return Response.json(
+        { ok: true, ignored: true, reason: "caller_not_allowed", from },
+        { status: 200 },
+      );
+    }
     const startedAt = body.data.timestamp ?? new Date().toISOString();
     const { jobId, person, property, unit } = getOrCreateStubJob(callId, from);
 
@@ -259,6 +266,14 @@ async function handleLiveWebhook(
     // Live `agent.call_ended` can arrive before any `agent.message` if the
     // call was very short — fall back to "unknown" so we still record it.
     const fromNumber = existing?.fromNumber ?? "unknown";
+    // If we never saw an agent.message for this call, the whitelist hasn't
+    // been checked yet — drop unrecognized callers here too.
+    if (!existing && !isCallerAllowed(fromNumber)) {
+      return Response.json(
+        { ok: true, ignored: true, reason: "caller_not_allowed", from: fromNumber },
+        { status: 200 },
+      );
+    }
     const { jobId, person, property, unit } = getOrCreateStubJob(callId, fromNumber);
 
     // AgentPhone's call_ended transcript is the authoritative final version,

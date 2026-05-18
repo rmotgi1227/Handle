@@ -10,20 +10,13 @@ import {
   Users,
   Home,
   CreditCard,
-  ChevronDown,
   ChevronsLeft,
   ChevronsRight,
   Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePollingFetch } from "@/hooks/use-polling-fetch";
-import type { Call, Property } from "@/lib/types";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import type { Call } from "@/lib/types";
 
 type NavItem = {
   href: string;
@@ -311,49 +304,15 @@ function UserCard({ collapsed }: { collapsed: boolean }) {
 
 type CallsResponse = { calls: Call[] };
 
-export function PmHeader({ properties }: { properties: Property[] }) {
+export function PmHeader() {
   const callsRes = usePollingFetch<CallsResponse>("/api/calls", 5000);
-  const [selected, setSelected] = useState<string>("all");
 
   const liveCount = (callsRes.data?.calls ?? []).filter(
     (c) => c.status === "in_progress" || c.status === "ringing",
   ).length;
 
-  const selectedLabel =
-    selected === "all"
-      ? "All properties"
-      : (() => {
-          const p = properties.find((x) => x.id === selected);
-          return p
-            ? `${p.address}${p.unit ? ` · ${p.unit}` : ""}`
-            : "All properties";
-        })();
-
   return (
     <header className="flex h-16 items-center gap-4 border-b border-[#E8E3DA] bg-[#F6F4EF] px-6">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-full border border-[#E8E3DA] bg-white px-3.5 py-2 text-sm font-semibold text-[#15161A] transition-colors hover:bg-[#F6F4EF]"
-          >
-            <span className="max-w-[16rem] truncate">{selectedLabel}</span>
-            <ChevronDown className="size-3.5 text-[#6B7070]" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuItem onSelect={() => setSelected("all")}>
-            All properties
-          </DropdownMenuItem>
-          {properties.map((p) => (
-            <DropdownMenuItem key={p.id} onSelect={() => setSelected(p.id)}>
-              {p.address}
-              {p.unit ? ` · ${p.unit}` : ""}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       <div className="ml-auto flex items-center gap-2 text-xs font-semibold tracking-tight">
         {liveCount > 0 ? (
           <>

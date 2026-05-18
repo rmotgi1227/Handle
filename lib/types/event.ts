@@ -19,6 +19,8 @@ export type JobEventKind =
   | "paid"
   | "note"
   | "visual_triage"
+  | "recall_partial"
+  | "routing_failed"
 
 export interface JobEvent {
   id: string;

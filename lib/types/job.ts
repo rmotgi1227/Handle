@@ -3,6 +3,7 @@ import type { Trade } from "./contractor";
 export type JobStatus =
   | "triaging"
   | "sourcing_contractor"
+  | "needs_manual_routing"
   | "scheduled"
   | "in_progress"
   | "awaiting_survey"
