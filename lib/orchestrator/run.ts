@@ -318,25 +318,6 @@ function djb2(input: string): number {
   return hash >>> 0;
 }
 
-/**
- * Map a contractorId to a deterministic dial outcome bucket.
- * 0-6 → accepted_job, 7-8 → callback_scheduled, 9 → no_answer.
- */
-export function simulateDialOutcome(contractorId: string): ContractorCallOutcome {
-  const bucket = djb2(contractorId) % 10;
-  if (bucket <= 6) return "accepted_job";
-  if (bucket <= 8) return "callback_scheduled";
-  return "no_answer";
-}
-
-/**
- * Deterministic ETA window for accepted jobs (per contractor).
- */
-function simulateEtaWindow(contractorId: string): string {
-  const minutes = 20 + (djb2(contractorId) % 60); // 20–79 min
-  return `${minutes}–${minutes + 30} min`;
-}
-
 // ---------------------------------------------------------------------------
 // findContractorsForJob — used by /api/contractors/find and orchestrator
 // ---------------------------------------------------------------------------
@@ -440,6 +421,49 @@ export interface DialContractorResult {
   outcome: ContractorCallOutcome;
   contractorCallId: string;
   etaWindow?: string;
+  quotedPriceCents?: number;
+  /** True when the outcome came from a real AgentPhone webhook; false when
+   * we timed out waiting and degraded to a synthesized no_answer. */
+  fromWebhook: boolean;
+}
+
+/** How long we wait for a real outbound-call webhook to land before giving
+ * up on a single dial. 90s covers ring + voicemail + a short conversation. */
+const DIAL_WAIT_TIMEOUT_MS = 90_000;
+const DIAL_POLL_INTERVAL_MS = 500;
+
+/**
+ * Poll the in-memory store for the real outcome on this contractorCallId.
+ * The `/api/calls/outbound` webhook writes the outcome when the call ends;
+ * we wait for that write here. If no write lands within DIAL_WAIT_TIMEOUT_MS,
+ * resolve with a synthesized no_answer so runAgent's Promise.any race can
+ * move on without hanging.
+ *
+ * Cross-lambda caveat: the in-memory store is per-instance. If the dispatch
+ * handler and the outbound webhook hit different lambda instances, the
+ * poller in the dispatch lambda won't see the webhook's write and will
+ * time out. Known limitation until SQLite lands.
+ */
+async function waitForDialOutcome(contractorCallId: string): Promise<{
+  outcome: ContractorCallOutcome;
+  etaWindow?: string;
+  quotedPriceCents?: number;
+  fromWebhook: boolean;
+}> {
+  const deadline = Date.now() + DIAL_WAIT_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const rec = store.contractorCalls.get(contractorCallId);
+    if (rec?.outcome) {
+      return {
+        outcome: rec.outcome,
+        etaWindow: rec.etaWindow,
+        quotedPriceCents: rec.quotedPriceCents,
+        fromWebhook: true,
+      };
+    }
+    await new Promise((r) => setTimeout(r, DIAL_POLL_INTERVAL_MS));
+  }
+  return { outcome: "no_answer", fromWebhook: false };
 }
 
 export async function dialContractorForJob(
@@ -500,12 +524,32 @@ export async function dialContractorForJob(
     startedAt: new Date().toISOString(),
   });
 
-  // For the orchestrator's internal Promise.any race (runAgent), we still
-  // return a synthesized outcome — but we do NOT persist it. The race is a
-  // best-effort pick of a likely winner; the webhook is the source of truth.
-  const outcome = simulateDialOutcome(contractorId);
-  const etaWindow = outcome === "accepted_job" ? simulateEtaWindow(contractorId) : undefined;
-  return { outcome, contractorCallId, etaWindow };
+  // Block on the real outcome. runAgent's Promise.any race now picks the
+  // first contractor whose webhook reports accepted_job — no synthesized
+  // hash-driven outcome anywhere in the dispatch path.
+  const realOutcome = await waitForDialOutcome(contractorCallId);
+
+  // If we timed out without a webhook, surface a timeout event so the
+  // dashboard reflects why this dial fell out of the race. The webhook
+  // handler writes real outcome events on its own; here we only write
+  // the degraded-timeout case.
+  if (!realOutcome.fromWebhook) {
+    store.appendEvent({
+      jobId,
+      kind: "contractor_dial_outcome",
+      title: `${contractor.name}: no answer (timeout)`,
+      detail: `No call_ended webhook within ${Math.round(DIAL_WAIT_TIMEOUT_MS / 1000)}s — assuming no answer.`,
+      data: { contractorId, contractorCallId, outcome: "no_answer", source: "dial_timeout" },
+    });
+  }
+
+  return {
+    outcome: realOutcome.outcome,
+    contractorCallId,
+    etaWindow: realOutcome.etaWindow,
+    quotedPriceCents: realOutcome.quotedPriceCents,
+    fromWebhook: realOutcome.fromWebhook,
+  };
 }
 
 // ---------------------------------------------------------------------------
