@@ -1,3 +1,4 @@
+import "@/lib/store/bootstrap";
 import { z } from "zod";
 import { findContractorsForJob } from "@/lib/orchestrator/run";
 
