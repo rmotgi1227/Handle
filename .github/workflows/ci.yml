@@ -31,13 +31,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (non-blocking)
-        run: pnpm lint --max-warnings 9999
-        continue-on-error: true
+      # Each gate runs as a separate step so a CI failure points
+      # straight at the offending command. All three must pass.
 
-      - name: Type check (non-blocking — Vercel re-runs this)
+      - name: Type check
         run: pnpm exec tsc --noEmit
-        continue-on-error: true
+
+      - name: Lint
+        run: pnpm exec eslint . --max-warnings 0
 
       - name: Test
-        run: pnpm test
+        run: pnpm test --run
